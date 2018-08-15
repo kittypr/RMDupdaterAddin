@@ -6,9 +6,13 @@ library(googledrive)
 RMDupdaterAddin <- function() {
 
   ui <- miniUI::miniPage(
-    miniUI::gadgetTitleBar("Detect changed blocks"),
+    miniUI::gadgetTitleBar("RMD update"),
     miniUI::miniButtonBlock(
-      shiny::actionButton("tst", "TEST BUTT", icon = shiny::icon("plus")),
+      shiny::actionButton("upd", "Update", icon = shiny::icon("arrow-top")),
+      border = "bottom"
+    ),
+    miniUI::miniButtonBlock(
+      shiny::actionButton("chc", "Check out", icon = shiny::icon("arrow-bottom")),
       border = "bottom"
     ),
     miniUI::miniButtonBlock(
@@ -23,21 +27,21 @@ RMDupdaterAddin <- function() {
 
 
   server <- function(input, output, session) {
-    myChanges <- readLines(rstudioapi::selectFile(caption = "Select File", label = "Select", path = NULL,
-                   filter = "*.changes", existing = TRUE))
-    context <- rstudioapi::getActiveDocumentContext()
-    original <- context$contents
-    print(original[16])
-#    print(myChanges)
+    myChanges <- NaN
+    context <- NaN
+    original <- NaN
     iter <- 1
 
-    shiny::observeEvent(input$tst, {
+    shiny::observeEvent(input$upd, {
+# temporary, testing some functions
       print(rstudioapi::getActiveProject())
       file <- rstudioapi::selectFile(caption = "Select File", label = "Select", path = NULL,
-                                     filter = "*.changes", existing = TRUE)
+                                     filter = "*.odt", existing = TRUE)
       print(file)
       result <- googledrive::drive_upload(file, name = "experimental")
       str(result[[2]])
+      file.new <- rstudioapi::getActiveDocumentContext()
+      str(file.new)
     })
 
     shiny::observeEvent(input$done, {
@@ -45,13 +49,24 @@ RMDupdaterAddin <- function() {
       shiny::stopApp()
     })
 
+    shiny::observeEvent(input$chc, {
+      myChanges <<- readLines(rstudioapi::selectFile(caption = "Select File", label = "Select", path = NULL,
+                                                    filter = "*.changes", existing = TRUE))
+      context <<- rstudioapi::getActiveDocumentContext()
+      original <<- context$contents
+    })
+
     shiny::observeEvent(input$prv, {
-      # Return the brushed points. See ?shiny::brushedPoints.
+# temporary unavailable
+# TODO: just do it
       shiny::stopApp()
     })
 
     shiny::observeEvent(input$nxt, {
-      if (iter > length(myChanges)){
+      if (length(myChanges) == 1){
+        print("FILE WAS NOT CHOSEN")
+      }
+      else if (iter > length(myChanges)){
         print("END OF CHANGES FILE. USE 'FIND PREV' OR 'DONE'")
       } else {
         contextLength <- 0
