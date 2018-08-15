@@ -1,7 +1,10 @@
+#title: "RSCH-1369 Developer Ecosystem Survey 2018. Full Report"
+
 library(shiny)
 library(miniUI)
 library(rstudioapi)
 library(googledrive)
+library(knitr)
 
 RMDupdaterAddin <- function() {
 
@@ -34,14 +37,20 @@ RMDupdaterAddin <- function() {
 
     shiny::observeEvent(input$upd, {
 # temporary, testing some functions
-      print(rstudioapi::getActiveProject())
-      file <- rstudioapi::selectFile(caption = "Select File", label = "Select", path = NULL,
-                                     filter = "*.odt", existing = TRUE)
-      print(file)
-      result <- googledrive::drive_upload(file, name = "experimental")
-      str(result[[2]])
+      print(rstudioapi::getActiveProject()) # project (sync) path
+#      file <- rstudioapi::selectFile(caption = "Select File", label = "Select", path = NULL,
+#                                     filter = "*.changes", existing = TRUE)
+#      print(file)
+#      result <- googledrive::drive_upload(file, name = "experimental")
+#      str(result[[2]]) # gdoc id
       file.new <- rstudioapi::getActiveDocumentContext()
-      str(file.new)
+      title.string <- file.new$contents[2]
+      print(title.string)
+      str(file.new$path) # rmd path
+      title <- strsplit(title.string, split = '"', fixed = TRUE)
+      print(title.string)
+      print(title[[c(1,2)]]) # report name
+      knitr::knit(file.new$path)
     })
 
     shiny::observeEvent(input$done, {
@@ -127,4 +136,4 @@ RMDupdaterAddin <- function() {
   shiny::runGadget(ui, server)
 }
 
-RMDupdaterAddin()
+#RMDupdaterAddin()
