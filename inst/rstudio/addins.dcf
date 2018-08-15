@@ -1,0 +1,4 @@
+Name: RMDupdaterAddin
+Description: Highlight code from .changes file.
+Binding: RMDupdaterAddin
+Interactive: true
