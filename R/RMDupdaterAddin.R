@@ -52,7 +52,7 @@ RMDupdaterAddin <- function() {
       print(title[[c(1,2)]]) # report name
       print("hi")
       res <- shell("RMDupdater.py C:\\Users\\jetbrains\\Documents\\research-scripts-master\\research-scripts-master\\RSCH\\rsch_1369_deveco18_report\\reports\\full_report\\full_report.md 1wg3wTu2tv1gs_eCoUFZUkSNyyBVaoCeTYOIKZjGSKZU", intern = TRUE)
-      print(res) # answer
+      print(res) #  answer
     })
 
     shiny::observeEvent(input$done, {
