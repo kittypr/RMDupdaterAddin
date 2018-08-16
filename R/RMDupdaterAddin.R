@@ -44,13 +44,15 @@ RMDupdaterAddin <- function() {
 #      result <- googledrive::drive_upload(file, name = "experimental")
 #      str(result[[2]]) # gdoc id
       file.new <- rstudioapi::getActiveDocumentContext()
-      title.string <- file.new$contents[2]
+      title.string <- file.new$contents[1]
       print(title.string)
       str(file.new$path) # rmd path
       title <- strsplit(title.string, split = '"', fixed = TRUE)
       print(title.string)
       print(title[[c(1,2)]]) # report name
-      knitr::knit(file.new$path)
+      print("hi")
+      res <- shell("RMDupdater.py C:\\Users\\jetbrains\\Documents\\research-scripts-master\\research-scripts-master\\RSCH\\rsch_1369_deveco18_report\\reports\\full_report\\full_report.md 1wg3wTu2tv1gs_eCoUFZUkSNyyBVaoCeTYOIKZjGSKZU", intern = TRUE)
+      print(res) # answer
     })
 
     shiny::observeEvent(input$done, {
@@ -136,4 +138,4 @@ RMDupdaterAddin <- function() {
   shiny::runGadget(ui, server)
 }
 
-#RMDupdaterAddin()
+RMDupdaterAddin()
