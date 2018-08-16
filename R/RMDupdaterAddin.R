@@ -63,13 +63,10 @@ RMDupdaterAddin <- function() {
       sync.info <- readLines(sync.path)
       regular.exp <- paste0("^# ", report.name)
       result <- grep(regular.exp, sync.info)
-      print(report.name)
-      print(sync.info)
-      print(result)
+      odt.report <- gsub(".R", ".odt", report.path, fixed=TRUE) # CHANGE BEFORE RELEASE to .rmd
       if (length(result) == 0){
         choice <- menu(c("Yes"), title = "Report wasn`t found in sync_reports.sh. Do you want create new finish and draft?")
         if (choice == 1){
-          odt.report <- gsub(".R", ".odt", report.path, fixed=TRUE) # CHANGE BEFORE RELEASE to .rmd
           result <- googledrive::drive_upload(odt.report, name = report.name, type = "document")
           print(result)
           finish <- result[[2]]
@@ -82,6 +79,13 @@ RMDupdaterAddin <- function() {
           print(draft.string)
           cat("\n", finish.string, draft.string,file=sync.path,sep="\n",append=TRUE)
         }
+      }
+      else {
+        # python magic there
+        draft.string <- sync.info[result[1] + 1]
+        draft.id <- strsplit(draft.string, split = " ", fixed = TRUE)[[c(1,3)]]
+        print(draft.id)
+        googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
       }
 
 
