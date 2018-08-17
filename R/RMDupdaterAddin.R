@@ -33,6 +33,38 @@ compare <- function(echo.md.path, draft.id){
   res <- shell(paste0("RMDupdater.py ", echo.md.path, " ", draft.id), intern = TRUE) # getting answer from python
 }
 
+performRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
+
+  reFrom <- from
+  reTo <- to
+  matches <- gregexpr(reFrom, contents, fixed = TRUE)
+
+  changes <- sum(unlist(lapply(matches, function(x) {
+    if (x[[1]] == -1) 0 else length(x)
+  })))
+
+  refactored <- unlist(lapply(contents, function(x) {
+    gsub(reFrom, reTo, x, fixed = TRUE)
+  }))
+
+  list(
+    refactored = refactored,
+    changes = changes
+  )
+}
+
+echo <- function(option, content, context){
+  if (option){
+    spec <- performRefactor(content, from = "Developer", to = "Developer")
+    transformed <- paste(spec$refactored, collapse = "\n")
+    rstudioapi::setDocumentContents(transformed, id = context$id)
+  } else {
+    spec <- performRefactor(content, from = "Developer", to ="Developer" )
+    transformed <- paste(spec$refactored, collapse = "\n")
+    rstudioapi::setDocumentContents(transformed, id = context$id)
+  }
+}
+
 RMDupdaterAddin <- function() {
 
   ui <- miniUI::miniPage(
@@ -99,14 +131,16 @@ RMDupdaterAddin <- function() {
         draft.string <- sync.info[result[1] + 1]
         draft.id <- strsplit(draft.string, split = " ", fixed = TRUE)[[c(1,3)]]
         print("Draft info found. Comparison process . . .")
+        echo(option = TRUE, content = current.report$contents, current.report)
         # KNITTING ECHO MD HERE
         # PATH TO ECHO MD HERE
+        echo(option = FALSE, content = current.report$contents, current.report)
         #compare(report.path, draft.id)
         choice <- menu(c("Yes"), title = "Do you want update draft?")
         if (choice == 1){
           googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
+          print("Updated successfully")
         }
-        print("Updated successfully")
         shiny::stopApp()
       }
     })
@@ -157,7 +191,7 @@ RMDupdaterAddin <- function() {
           }
           pLength <- length(patern)
           pResLength <- length(res.patern)
-          candidate <- find(patern = patern, original = origina)
+          candidate <- find(patern = patern, original = original)
           res.candidate <- find(patern = res.patern, original = original)
           if (length(candidate) > 0){
             rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(candidate[1]+contextLength, 1),
@@ -189,5 +223,6 @@ RMDupdaterAddin <- function() {
 }
 
 RMDupdaterAddin()
+
 
 
