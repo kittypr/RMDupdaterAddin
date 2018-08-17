@@ -7,7 +7,7 @@ library(googledrive)
 library(knitr)
 
 
-find <- function(patern, original){
+Find <- function(patern, original){
   pattern.length <- length(patern)
   original.length <- length(original)
   candidate <- seq.int(length=original.length-pattern.length+1)
@@ -17,7 +17,7 @@ find <- function(patern, original){
   candidate
 }
 
-upload <- function(odt.report, report.name, report.name.draft, sync.path){
+Upload <- function(odt.report, report.name, report.name.draft, sync.path){
   result <- googledrive::drive_upload(odt.report, name = report.name, type = "document")
   fair <- result[[2]] # gdoc id for clean copy
   result <- googledrive::drive_upload(odt.report, name = report.name.draft, type = "document")
@@ -29,11 +29,11 @@ upload <- function(odt.report, report.name, report.name.draft, sync.path){
   cat("\n", fair.string, draft.string,file=sync.path,sep="\n",append=TRUE)
 }
 
-compare <- function(echo.md.path, draft.id){
+Compare <- function(echo.md.path, draft.id){
   res <- shell(paste0("RMDupdater.py ", echo.md.path, " ", draft.id), intern = TRUE) # getting answer from python
 }
 
-performRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
+PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
 
   reFrom <- from
   reTo <- to
@@ -53,16 +53,18 @@ performRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
   )
 }
 
-echo <- function(option, content, context){
-  if (option){
-    spec <- performRefactor(content, from = "Developer", to = "Developer")
-    transformed <- paste(spec$refactored, collapse = "\n")
-    rstudioapi::setDocumentContents(transformed, id = context$id)
-  } else {
-    spec <- performRefactor(content, from = "Developer", to ="Developer" )
-    transformed <- paste(spec$refactored, collapse = "\n")
-    rstudioapi::setDocumentContents(transformed, id = context$id)
-  }
+Echo <- function(content, context){
+  file.create("report_copy.rmd")
+  spec <- PerformRefactor(content, from = "Developer", to = "Developter")
+  transformed <- paste(spec$refactored, collapse = "\n")
+}
+
+CopyAndCompare <- function(echo.true.report){
+  file.create("report_copy.rmd")
+  cat(echo.true.report, file = "report_copy.rmd")
+  knitr::knit(input = "report_copy.rmd", output = "echo_report.md")
+  #pythonmagic there
+  file.remove(c("report_copy.rmd", "echo_report.md"))
 }
 
 RMDupdaterAddin <- function() {
@@ -122,7 +124,7 @@ RMDupdaterAddin <- function() {
         print("Files were not found in sync_reports.sh.")
         choice <- menu(c("Yes"), title = "Do you want create new fair and draft?")
         if (choice == 1){
-          upload(odt.report, report.name, report.name.draft, sync.path)
+          Upload(odt.report, report.name, report.name.draft, sync.path)
         }
         print("Uploaded successfully")
         shiny::stopApp()
@@ -131,11 +133,8 @@ RMDupdaterAddin <- function() {
         draft.string <- sync.info[result[1] + 1]
         draft.id <- strsplit(draft.string, split = " ", fixed = TRUE)[[c(1,3)]]
         print("Draft info found. Comparison process . . .")
-        echo(option = TRUE, content = current.report$contents, current.report)
-        # KNITTING ECHO MD HERE
-        # PATH TO ECHO MD HERE
-        echo(option = FALSE, content = current.report$contents, current.report)
-        #compare(report.path, draft.id)
+        echo.true.report <- Echo(content = current.report$contents, current.report)
+        CopyAndCompare(echo.true.report)
         choice <- menu(c("Yes"), title = "Do you want update draft?")
         if (choice == 1){
           googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
@@ -191,8 +190,8 @@ RMDupdaterAddin <- function() {
           }
           pLength <- length(patern)
           pResLength <- length(res.patern)
-          candidate <- find(patern = patern, original = original)
-          res.candidate <- find(patern = res.patern, original = original)
+          candidate <- Find(patern = patern, original = original)
+          res.candidate <- Find(patern = res.patern, original = original)
           if (length(candidate) > 0){
             rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(candidate[1]+contextLength, 1),
                                                                       rstudioapi::document_position(candidate[1]+pLength-1, nchar(patern[pLength])+1)),
