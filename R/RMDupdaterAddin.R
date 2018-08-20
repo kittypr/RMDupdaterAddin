@@ -131,7 +131,11 @@ RMDupdaterAddin <- function() {
       result <<- grep(regular.exp, sync.info)
 
       # building path to odt
-      odt.report <<- gsub(".rmd$", ".odt", report.path) # CHANGE BEFORE RELEASE to .rmd
+      find.odt.report <<- gsub(".rmd$", ".odt", report.path) # CHANGE BEFORE RELEASE to .rmd
+      normalized.path <- normalizePath(find.odt.report)
+      normalized.project.path <- normalizePath(project.path)
+      new.odt.report <- gsub(paste0(normalized.project.path, "\\"), "", normalized.path, fixed = TRUE)
+      odt.report <<- gsub("\\", "/", new.odt.report, fixed = TRUE)
       if ( ! file.exists(odt.report)){
         print(paste0("File ", odt.report, " was not found."))
         if (menu(c("Yes"), title = "Select it manually?") == 1){
