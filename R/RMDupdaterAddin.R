@@ -162,7 +162,7 @@ RMDupdaterAddin <- function() {
     Highlight <- function(){
       context <<- rstudioapi::getActiveDocumentContext()
       original <<- context$contents
-      if (is.null(original)){
+      if (original == ""){
         print("Set your cursor to *.rmd document and try again")
       }
       else {
