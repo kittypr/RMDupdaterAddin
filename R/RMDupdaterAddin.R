@@ -1,6 +1,3 @@
-
-title: "RSCH-1369 Developer Ecosystem Survey 2018. Full Report"
-
 library(shiny)
 library(miniUI)
 library(rstudioapi)
@@ -34,7 +31,7 @@ Upload <- function(odt.report, report.name, report.name.draft, sync.path){
 
 Compare <- function(echo.md.path, fair.id){
   # run the comparing python script
-  answer <- shell(paste0("RMDupdater.py ", echo.md.path, " ", fair.id), intern = TRUE) # getting answer from python
+  answer <- shell(paste0("RMD_updater.py ", echo.md.path, " ", fair.id), intern = TRUE) # getting answer from python
 }
 
 PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
@@ -58,7 +55,10 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
 Echo <- function(content, context){
   # copying content of current report and replace ECHO=FALSE to ECHO=TRUE, return  changed content
   file.create("report_copy.rmd")
-  spec <- PerformRefactor(content, from = "knitr::opts_chunk$set(echo = FALSE)", to = "knitr::opts_chunk$set(echo = TRUE)") # CHANGE BEFORE RELIASE
+  spec <- PerformRefactor(content, from = "knitr::opts_chunk$set(echo = FALSE)", to = "knitr::opts_chunk$set(echo = TRUE)")  # CHANGE BEFORE RELIASE
+  if (spec$changes == 0){
+    spec <<- PerformRefactor(content, from = "echo = FALSE", to = "echo = TRUE")  # TODO: make it regular
+  }
   spec$refactored  # return as character vector
   #  transformed <- paste(spec$refactored, collapse = "\n")  # return as string witn \n
 }
@@ -99,7 +99,7 @@ RMDupdaterAddin <- function() {
 
 
   server <- function(input, output, session) {
-    myChanges <- NaN
+    my.changes <- NaN
     context <- NaN
     original <- NaN
     iter <- 1
@@ -124,9 +124,9 @@ RMDupdaterAddin <- function() {
 
       title.string <- current.report$contents[2]
       # yaml test
-      t <- yaml::yaml.load(title.string)
-      str(t)
-      print(t$title)
+      #t <- yaml::yaml.load(title.string)
+      #str(t)
+      #print(t$title)
 
       title <- strsplit(title.string, split = "\"", fixed = TRUE)
       report.name <<- title[[c(1,2)]]
@@ -160,51 +160,58 @@ RMDupdaterAddin <- function() {
     }
 
     Highlight <- function(){
-      context.length <- 0
-      pattern <- c("")
-      res.pattern <- c("")
-      if (myChanges[iter] == "# CONTEXT") {
-        memory[outer.iter] <<- iter
-        outer.iter <<- outer.iter +1
-        iter <<- iter + 1
-        inner.iter <- 0
-        while (myChanges[iter] != "# CHANGED BLOCK"){
-          inner.iter <- inner.iter + 1
-          pattern[inner.iter] <- myChanges[iter]
-          iter <<- iter + 1
-        }
-        iter <<- iter + 1
-        context.length <- inner.iter
-        if (context.length == 1 & pattern[1] == ""){
-          context.length <<-0
-          inner.iter <<-0
-        }
-        while (myChanges[iter] != "# END"){
-          inner.iter <- inner.iter + 1
-          pattern[inner.iter] <- myChanges[iter]
-          res.pattern[inner.iter - context.length] <- myChanges[iter]
-          iter <<- iter + 1
-        }
-        pattern.length <- length(pattern)
-        res.pattern.length <- length(res.pattern)
-        candidate <- Find(pattern = pattern, original = original)
-        res.candidate <- Find(pattern = res.pattern, original = original)
-        if (length(candidate) > 0){
-          rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(candidate[1]+context.length, 1),
-                                                                    rstudioapi::document_position(candidate[1]+pattern.length-1, nchar(pattern[pattern.length])+1)),
-                                         id = NULL)
-        }
-        else if (length(res.candidate) > 0){
-          rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(res.candidate[1], 1),
-                                                                    rstudioapi::document_position(res.candidate[1]+res.pattern.length-1, nchar(res.pattern[res.pattern.length])+1)),
-                                         id = NULL)
-        }
-        else {
-          message("NOT FOUND")
-          print(res.pattern)
-        }
+      context <<- rstudioapi::getActiveDocumentContext()
+      original <<- context$contents
+      if (is.null(original)){
+        print("Set your cursor to *.rmd document and try again")
       }
-      iter <<- iter + 1
+      else {
+        context.length <- 0
+        pattern <- c("")
+        res.pattern <- c("")
+        if (my.changes[iter] == "# CONTEXT") {
+          memory[outer.iter] <<- iter
+          outer.iter <<- outer.iter +1
+          iter <<- iter + 1
+          inner.iter <- 0
+          while (my.changes[iter] != "# CHANGED BLOCK"){
+            inner.iter <- inner.iter + 1
+            pattern[inner.iter] <- my.changes[iter]
+            iter <<- iter + 1
+          }
+          iter <<- iter + 1
+          context.length <- inner.iter
+          if (context.length == 1 & pattern[1] == ""){
+            context.length <<-0
+            inner.iter <<-0
+          }
+          while (my.changes[iter] != "# END"){
+            inner.iter <- inner.iter + 1
+            pattern[inner.iter] <- my.changes[iter]
+            res.pattern[inner.iter - context.length] <- my.changes[iter]
+            iter <<- iter + 1
+          }
+          pattern.length <- length(pattern)
+          res.pattern.length <- length(res.pattern)
+          candidate <- Find(pattern = pattern, original = original)
+          res.candidate <- Find(pattern = res.pattern, original = original)
+          if (length(candidate) > 0){
+            rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(candidate[1]+context.length, 1),
+                                                                      rstudioapi::document_position(candidate[1]+pattern.length-1, nchar(pattern[pattern.length])+1)),
+                                           id = NULL)
+          }
+          else if (length(res.candidate) > 0){
+            rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(res.candidate[1], 1),
+                                                                      rstudioapi::document_position(res.candidate[1]+res.pattern.length-1, nchar(res.pattern[res.pattern.length])+1)),
+                                           id = NULL)
+          }
+          else {
+            message("NOT FOUND")
+            print(res.pattern)
+          }
+        }
+        iter <<- iter + 1
+      }
     }
 
     shiny::observeEvent(input$upd, {
@@ -240,7 +247,7 @@ RMDupdaterAddin <- function() {
           shiny::stopApp()
         }
         else {
-          nessage("Some errors occurred:")
+          message("Some errors occurred:")
           message(answer)
           shiny::stopApp()
         }
@@ -293,14 +300,12 @@ RMDupdaterAddin <- function() {
           massage("Can't find *.changes file.")
           message("Use 'Update' button to create it.")
         }
-        myChanges <<- readLines(log.file)
-        context <<- rstudioapi::getActiveDocumentContext()
-        original <<- context$contents
+        my.changes <<- readLines(log.file)
       }
-      if (length(myChanges) == 1){
+      if (length(my.changes) == 1){
         message("- - - - - NO CHANGES DETECTED - - - - -")
       }
-      else if (iter > length(myChanges)){
+      else if (iter > length(my.changes)){
         message("- - - - - END OF CHANGES FILE. USE 'FIND PREV' OR 'DONE' - - - - -")
       }
       else {
@@ -318,7 +323,7 @@ RMDupdaterAddin <- function() {
   shiny::runGadget(ui, server)
 }
 
-RMDupdaterAddin()
+#RMDupdaterAddin()
 
 
 
