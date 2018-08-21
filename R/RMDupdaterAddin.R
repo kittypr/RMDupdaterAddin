@@ -1,11 +1,12 @@
-#title: "RSCH-1369 Developer Ecosystem Survey 2018. Full Report"
+
+title: "RSCH-1369 Developer Ecosystem Survey 2018. Full Report"
 
 library(shiny)
 library(miniUI)
 library(rstudioapi)
 library(googledrive)
 library(knitr)
-
+library(yaml)
 
 Find <- function(patern, original){
   pattern.length <- length(patern)
@@ -29,8 +30,8 @@ Upload <- function(odt.report, report.name, report.name.draft, sync.path){
   cat("\n", fair.string, draft.string,file=sync.path,sep="\n",append=TRUE)
 }
 
-Compare <- function(echo.md.path, draft.id){
-  answer <- shell(paste0("RMDupdater.py ", echo.md.path, " ", draft.id), intern = TRUE) # getting answer from python
+Compare <- function(echo.md.path, fair.id){
+  answer <- shell(paste0("RMDupdater.py ", echo.md.path, " ", fair.id), intern = TRUE) # getting answer from python
 }
 
 PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
@@ -54,20 +55,20 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
 }
 
 Echo <- function(content, context){
-  # copying content of current report and replace all ECHO=FALSE to ECHO=TRUE, return  changed content
+  # copying content of current report and replace ECHO=FALSE to ECHO=TRUE, return  changed content
   file.create("report_copy.rmd")
   spec <- PerformRefactor(content, from = "knitr::opts_chunk$set(echo = FALSE)", to = "knitr::opts_chunk$set(echo = TRUE)") # CHANGE BEFORE RELIASE
   spec$refactored  # return as character vector
   #  transformed <- paste(spec$refactored, collapse = "\n")  # return as string witn \n
 }
 
-CopyAndCompare <- function(echo.true.report, draft.id){
+CopyAndCompare <- function(echo.true.report, fair.id){
   file.create("report_copy.rmd")
   out <- file(description="report_copy.rmd", open="w", encoding="UTF-8")
   writeLines(echo.true.report, con=out)
   close(con=out)
   knitr::knit(input = "report_copy.rmd", output = "echo_report.md")
-  answer <- Compare(echo.md.path = "echo_report.md", draft.id = draft.id)
+  answer <- Compare(echo.md.path = "echo_report.md", fair.id = fair.id)
   file.remove(c("report_copy.rmd", "echo_report.md"))
   answer
 }
@@ -100,8 +101,11 @@ RMDupdaterAddin <- function() {
     context <- NaN
     original <- NaN
     iter <- 1
+    outer.iter <- 1
+    memory <- c()
 
     draft.id <- NaN
+    fair.id <- NaN
     current.report <- NaN
     report.path <- NaN
     report.name <- NaN
@@ -116,7 +120,12 @@ RMDupdaterAddin <- function() {
       current.report <<- rstudioapi::getActiveDocumentContext()
       report.path <<- current.report$path
 
-      title.string <- current.report$contents[2]  # CHANGE BEFORE RELEASE to 2
+      title.string <- current.report$contents[2]
+      # yaml test
+      t <- yaml::yaml.load(title.string)
+      str(t)
+      print(t$title)
+
       title <- strsplit(title.string, split = "\"", fixed = TRUE)
       report.name <<- title[[c(1,2)]]
       report.name.draft <<- paste0("\"", report.name, ". Draft\"")
@@ -148,7 +157,6 @@ RMDupdaterAddin <- function() {
       }
     }
 
-
     shiny::observeEvent(input$upd, {
       GetIformation()
       if (length(result) == 0){  # report info wasnt found
@@ -161,11 +169,13 @@ RMDupdaterAddin <- function() {
         shiny::stopApp()
       }
       else {
+        fair.string <- sync.info[result[1]]
+        fair.id <<- strsplit(fair.string, split = "/", fixed = TRUE)[[c(1,6)]]
         draft.string <- sync.info[result[1] + 1]
         draft.id <<- strsplit(draft.string, split = " ", fixed = TRUE)[[c(1,3)]]
         print("Draft info found. Comparison process . . .")
         echo.true.report <- Echo(content = current.report$contents, current.report)
-        answer <- CopyAndCompare(echo.true.report, draft.id)
+        answer <- CopyAndCompare(echo.true.report, fair.id)
         if (answer[1] == "OUTDATED BLOCKS FOUNDED"){
           print("Changes detected. Please use 'Find next' button to see outdated blocks.")
           print("You can ignore changes and use 'Force update' button.")
@@ -182,6 +192,7 @@ RMDupdaterAddin <- function() {
         else {
           print("Some errors occurred:")
           print(answer)
+          shiny::stopApp()
         }
       }
     })
@@ -215,9 +226,8 @@ RMDupdaterAddin <- function() {
     })
 
     shiny::observeEvent(input$prv, {
-      # temporary unavailable
-      # TODO: just do it
-      shiny::stopApp()
+      outer.iter <<- outer.iter - 1
+      iter <<- memory[outer.iter]
     })
 
     shiny::observeEvent(input$nxt, {
@@ -241,23 +251,25 @@ RMDupdaterAddin <- function() {
         patern <- c("")
         res.patern <- c("")
         if (myChanges[iter] == "# CONTEXT") {
+          memory[outer.iter] <<- iter
+          outer.iter <<- outer.iter +1
           iter <<- iter + 1
-          innerIteration <- 0
+          inner.iter <- 0
           while (myChanges[iter] != "# CHANGED BLOCK"){
-            innerIteration <- innerIteration + 1
-            patern[innerIteration] <- myChanges[iter]
+            inner.iter <- inner.iter + 1
+            patern[inner.iter] <- myChanges[iter]
             iter <<- iter + 1
           }
           iter <<- iter + 1
-          contextLength <- innerIteration
+          contextLength <- inner.iter
           if (contextLength == 1 & patern[1] == ""){
             contextLength <<-0
-            innerIteration <<-0
+            inner.iter <<-0
           }
           while (myChanges[iter] != "# END"){
-            innerIteration <- innerIteration + 1
-            patern[innerIteration] <- myChanges[iter]
-            res.patern[innerIteration - contextLength] <- myChanges[iter]
+            inner.iter <- inner.iter + 1
+            patern[inner.iter] <- myChanges[iter]
+            res.patern[inner.iter - contextLength] <- myChanges[iter]
             iter <<- iter + 1
           }
           pLength <- length(patern)
@@ -293,7 +305,7 @@ RMDupdaterAddin <- function() {
   shiny::runGadget(ui, server)
 }
 
-#RMDupdaterAddin()
+RMDupdaterAddin()
 
 
 
