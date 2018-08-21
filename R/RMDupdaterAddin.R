@@ -8,22 +8,24 @@ library(googledrive)
 library(knitr)
 library(yaml)
 
-Find <- function(patern, original){
-  pattern.length <- length(patern)
+Find <- function(pattern, original){
+  # find subarray of string in array of strings, return array index of the beginning of subarray
+  pattern.length <- length(pattern)
   original.length <- length(original)
   candidate <- seq.int(length=original.length-pattern.length+1)
   for (i in seq.int(length=pattern.length)) {
-    candidate <- candidate[patern[i] == original[candidate + i - 1]]
+    candidate <- candidate[pattern[i] == original[candidate + i - 1]]
   }
   candidate
 }
 
 Upload <- function(odt.report, report.name, report.name.draft, sync.path){
   result <- googledrive::drive_upload(odt.report, name = report.name, type = "document")
-  fair <- result[[2]] # gdoc id for clean copy
+  fair <- result[[2]] # gdoc id for fair copy
   result <- googledrive::drive_upload(odt.report, name = report.name.draft, type = "document")
   draft <- result[[2]] # gdoc id for draft
 
+  # write info in sync_reports.sh
   fair.link <- paste0(" https://docs.google.com/document/d/", fair, "/")
   fair.string <- paste0("# ", report.name, fair.link)
   draft.string <- paste0("gdrive update ", draft, " ", odt.report, " --name ", report.name.draft)
@@ -31,21 +33,20 @@ Upload <- function(odt.report, report.name, report.name.draft, sync.path){
 }
 
 Compare <- function(echo.md.path, fair.id){
+  # run the comparing python script
   answer <- shell(paste0("RMDupdater.py ", echo.md.path, " ", fair.id), intern = TRUE) # getting answer from python
 }
 
 PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
 
-  reFrom <- from
-  reTo <- to
-  matches <- gregexpr(reFrom, contents, fixed = TRUE)
+  matches <- gregexpr(from, contents, fixed = TRUE)
 
   changes <- sum(unlist(lapply(matches, function(x) {
     if (x[[1]] == -1) 0 else length(x)
   })))
 
   refactored <- unlist(lapply(contents, function(x) {
-    gsub(reFrom, reTo, x, fixed = TRUE)
+    gsub(from, to, x, fixed = TRUE)
   }))
 
   list(
@@ -67,6 +68,7 @@ CopyAndCompare <- function(echo.true.report, fair.id){
   out <- file(description="report_copy.rmd", open="w", encoding="UTF-8")
   writeLines(echo.true.report, con=out)
   close(con=out)
+
   knitr::knit(input = "report_copy.rmd", output = "echo_report.md")
   answer <- Compare(echo.md.path = "echo_report.md", fair.id = fair.id)
   file.remove(c("report_copy.rmd", "echo_report.md"))
@@ -146,7 +148,7 @@ RMDupdaterAddin <- function() {
       new.odt.report <- gsub(paste0(normalized.project.path, "\\"), "", normalized.path, fixed = TRUE)
       odt.report <<- gsub("\\", "/", new.odt.report, fixed = TRUE)
       if ( ! file.exists(odt.report)){
-        print(paste0("File ", odt.report, " was not found."))
+        message(paste0("File ", odt.report, " was not found."))
         if (menu(c("Yes"), title = "Select it manually?") == 1){
           odt.report <<- rstudioapi::selectFile(caption = "Select knitted report:", label = "Select", path = NULL,
                                              filter = "*.odt", existing = TRUE)
@@ -157,14 +159,62 @@ RMDupdaterAddin <- function() {
       }
     }
 
+    Highlight <- function(){
+      context.length <- 0
+      pattern <- c("")
+      res.pattern <- c("")
+      if (myChanges[iter] == "# CONTEXT") {
+        memory[outer.iter] <<- iter
+        outer.iter <<- outer.iter +1
+        iter <<- iter + 1
+        inner.iter <- 0
+        while (myChanges[iter] != "# CHANGED BLOCK"){
+          inner.iter <- inner.iter + 1
+          pattern[inner.iter] <- myChanges[iter]
+          iter <<- iter + 1
+        }
+        iter <<- iter + 1
+        context.length <- inner.iter
+        if (context.length == 1 & pattern[1] == ""){
+          context.length <<-0
+          inner.iter <<-0
+        }
+        while (myChanges[iter] != "# END"){
+          inner.iter <- inner.iter + 1
+          pattern[inner.iter] <- myChanges[iter]
+          res.pattern[inner.iter - context.length] <- myChanges[iter]
+          iter <<- iter + 1
+        }
+        pattern.length <- length(pattern)
+        res.pattern.length <- length(res.pattern)
+        candidate <- Find(pattern = pattern, original = original)
+        res.candidate <- Find(pattern = res.pattern, original = original)
+        if (length(candidate) > 0){
+          rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(candidate[1]+context.length, 1),
+                                                                    rstudioapi::document_position(candidate[1]+pattern.length-1, nchar(pattern[pattern.length])+1)),
+                                         id = NULL)
+        }
+        else if (length(res.candidate) > 0){
+          rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(res.candidate[1], 1),
+                                                                    rstudioapi::document_position(res.candidate[1]+res.pattern.length-1, nchar(res.pattern[res.pattern.length])+1)),
+                                         id = NULL)
+        }
+        else {
+          message("NOT FOUND")
+          print(res.pattern)
+        }
+      }
+      iter <<- iter + 1
+    }
+
     shiny::observeEvent(input$upd, {
       GetIformation()
       if (length(result) == 0){  # report info wasnt found
-        print(paste0("Information associated with ", report.name, " was not found in sync_reports.sh."))
+        message(paste0("Information associated with ", report.name, " was not found in sync_reports.sh."))
         choice <- menu(c("Yes"), title = "Do you want create new fair and draft?")
         if (choice == 1){
           Upload(odt.report, report.name, report.name.draft, sync.path)
-          print("Uploaded successfully")
+          message("Uploaded successfully")
         }
         shiny::stopApp()
       }
@@ -173,25 +223,25 @@ RMDupdaterAddin <- function() {
         fair.id <<- strsplit(fair.string, split = "/", fixed = TRUE)[[c(1,6)]]
         draft.string <- sync.info[result[1] + 1]
         draft.id <<- strsplit(draft.string, split = " ", fixed = TRUE)[[c(1,3)]]
-        print("Draft info found. Comparison process . . .")
+        message("Draft info was found. Comparison process . . .")
         echo.true.report <- Echo(content = current.report$contents, current.report)
         answer <- CopyAndCompare(echo.true.report, fair.id)
         if (answer[1] == "OUTDATED BLOCKS FOUNDED"){
-          print("Changes detected. Please use 'Find next' button to see outdated blocks.")
-          print("You can ignore changes and use 'Force update' button.")
+          message("Changes detected. Please use 'Find next' button to see outdated blocks.")
+          message("You can ignore changes and use 'Force update' button.")
         }
         else if (answer[1] == "UP TO DATE"){
-          print("RMDupdater didn't detect any changes.")
+          message("RMDupdater didn't detect any changes.")
           choice <- menu(c("Yes"), title = "Do you want update draft?")
           if (choice == 1){
             googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
-            print("Updated successfully")
+            message("Updated successfully")
           }
           shiny::stopApp()
         }
         else {
-          print("Some errors occurred:")
-          print(answer)
+          nessage("Some errors occurred:")
+          message(answer)
           shiny::stopApp()
         }
       }
@@ -201,8 +251,8 @@ RMDupdaterAddin <- function() {
       if (is.nan(draft.id)){
         GetIformation()
         if (length(result) == 0){  # report info wasnt found
-          print("Files were not found in sync_reports.sh.")
-          print("Use 'Update' button.")
+          message("Files were not found in sync_reports.sh.")
+          message("Use 'Update' button.")
         }
         else {
           draft.string <- sync.info[result[1] + 1]
@@ -210,7 +260,7 @@ RMDupdaterAddin <- function() {
           choice <- menu(c("Yes"), title = "Do you want update draft?")
           if (choice == 1){
             googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
-            print("Updated successfully")
+            message("Updated successfully")
           }
           shiny::stopApp()
         }
@@ -219,79 +269,42 @@ RMDupdaterAddin <- function() {
         choice <- menu(c("Yes"), title = "Do you want update draft?")
         if (choice == 1){
           googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
-          print("Updated successfully")
+          message("Updated successfully")
         }
         shiny::stopApp()
       }
     })
 
     shiny::observeEvent(input$prv, {
-      outer.iter <<- outer.iter - 1
-      iter <<- memory[outer.iter]
+      if (outer.iter == 1 | outer.iter == 2){
+        message("- - - - - YOU ARE IN THE BEGINNING OF THE FILE. - - - - -")
+      }
+      else{
+        outer.iter <<- outer.iter - 2
+        iter <<- memory[outer.iter]
+        Highlight()
+      }
     })
 
     shiny::observeEvent(input$nxt, {
       if (iter == 1){
         log.file <- "log.changes"
         if ( ! file.exists("log.changes")){
-          message("Use 'Highlight' firstly!")
+          massage("Can't find *.changes file.")
+          message("Use 'Update' button to create it.")
         }
         myChanges <<- readLines(log.file)
         context <<- rstudioapi::getActiveDocumentContext()
         original <<- context$contents
       }
       if (length(myChanges) == 1){
-        print("NO CHANGES DETECTED")
+        message("- - - - - NO CHANGES DETECTED - - - - -")
       }
       else if (iter > length(myChanges)){
-        print("END OF CHANGES FILE. USE 'FIND PREV' OR 'DONE'")
+        message("- - - - - END OF CHANGES FILE. USE 'FIND PREV' OR 'DONE' - - - - -")
       }
       else {
-        contextLength <- 0
-        patern <- c("")
-        res.patern <- c("")
-        if (myChanges[iter] == "# CONTEXT") {
-          memory[outer.iter] <<- iter
-          outer.iter <<- outer.iter +1
-          iter <<- iter + 1
-          inner.iter <- 0
-          while (myChanges[iter] != "# CHANGED BLOCK"){
-            inner.iter <- inner.iter + 1
-            patern[inner.iter] <- myChanges[iter]
-            iter <<- iter + 1
-          }
-          iter <<- iter + 1
-          contextLength <- inner.iter
-          if (contextLength == 1 & patern[1] == ""){
-            contextLength <<-0
-            inner.iter <<-0
-          }
-          while (myChanges[iter] != "# END"){
-            inner.iter <- inner.iter + 1
-            patern[inner.iter] <- myChanges[iter]
-            res.patern[inner.iter - contextLength] <- myChanges[iter]
-            iter <<- iter + 1
-          }
-          pLength <- length(patern)
-          pResLength <- length(res.patern)
-          candidate <- Find(patern = patern, original = original)
-          res.candidate <- Find(patern = res.patern, original = original)
-          if (length(candidate) > 0){
-            rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(candidate[1]+contextLength, 1),
-                                                                      rstudioapi::document_position(candidate[1]+pLength-1, nchar(patern[pLength])+1)),
-                                           id = NULL)
-          }
-          else if (length(res.candidate) > 0){
-            rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(res.candidate[1], 1),
-                                                                      rstudioapi::document_position(res.candidate[1]+pResLength-1, nchar(res.patern[pResLength])+1)),
-                                           id = NULL)
-          }
-          else {
-            print("NOT FOUND")
-            print(res.patern)
-          }
-        }
-        iter <<- iter + 1
+        Highlight()
       }
     })
 
