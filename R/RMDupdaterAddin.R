@@ -75,6 +75,18 @@ CopyAndCompare <- function(echo.true.report, fair.id){
   answer
 }
 
+ExtractTitle <- function(content){
+  indexes <- grep("^---[[:space:]]*$", content, value = FALSE)
+  if (length(indexes) < 2){
+    message("TitleError: something wrong with YAML information. Can't find title. Exit.")
+    title <- NULL
+  }
+  else {
+    info <- yaml::yaml.load(content[indexes[1]+1:indexes[2]-1])
+    title <- info$title
+  }
+}
+
 RMDupdaterAddin <- function() {
 
   ui <- miniUI::miniPage(
@@ -121,17 +133,8 @@ RMDupdaterAddin <- function() {
       current.report <<- rstudioapi::getActiveDocumentContext()
       report.path <<- current.report$path
 
-      title.string <- current.report$contents[2]
-      # yaml test
-      #t <- yaml::yaml.load(title.string)
-      #str(t)
-      #print(t$title)
-
-      title <- strsplit(title.string, split = "\"", fixed = TRUE)
-      report.name <<- title[[c(1,2)]]
-      report.name.draft <<- paste0("\"", report.name, ". Draft\"")
-      report.name <<- paste0("\"", report.name, "\"")
-
+      report.name <<- paste0("\"", ExtractTitle(current.report$contents), "\"")
+      report.name.draft <<- gsub("\"$", ". Draft\"", report.name)
       project.path <- rstudioapi::getActiveProject() # path for sync_reports
       sync.path <<- paste0(project.path, "/sync_reports.sh")
       sync.info <<- readLines(sync.path)
@@ -141,7 +144,7 @@ RMDupdaterAddin <- function() {
       result <<- grep(regular.exp, sync.info)
 
       # building path to odt
-      find.odt.report <<- gsub(".rmd$", ".odt", report.path) # CHANGE BEFORE RELEASE to .rmd
+      find.odt.report <<- gsub("\\.Rmd$", ".odt", report.path) # CHANGE BEFORE RELEASE to .rmd
       normalized.path <- normalizePath(find.odt.report)
       normalized.project.path <- normalizePath(project.path)
       new.odt.report <- gsub(paste0(normalized.project.path, "\\"), "", normalized.path, fixed = TRUE)
@@ -165,19 +168,21 @@ RMDupdaterAddin <- function() {
         print("Set your cursor to *.rmd document and try again")
       }
       else {
-        indexes <- grep("^[[:blank:]]*#.*", content, value = FALSE, invert = TRUE)
-        original.without.comments <- grep("^[[:blank:]]*#.*", content, value = TRUE, invert = TRUE)
+        indexes <- grep("^$", content, value = FALSE, invert = TRUE)
+        original.without.comments <- grep("^$", content, value = TRUE, invert = TRUE)
+#        indexes <- seq(1, length(content))  # temporary
+#        original.without.comments <- content  # temporary
         shift.content <- list(index = indexes, content = original.without.comments)
         original <- shift.content$content
         context.length <- 0
         pattern <- c("")
         res.pattern <- c("")
-        if (my.changes[iter] == "# CONTEXT") {
+        if (my.changes[iter] == "~~ CONTEXT") {
           memory[outer.iter] <<- iter
           outer.iter <<- outer.iter +1
           iter <<- iter + 1
           inner.iter <- 0
-          while (my.changes[iter] != "# CHANGED BLOCK"){
+          while (my.changes[iter] != "~~ CHANGED BLOCK"){
             inner.iter <- inner.iter + 1
             pattern[inner.iter] <- my.changes[iter]
             iter <<- iter + 1
@@ -188,7 +193,7 @@ RMDupdaterAddin <- function() {
             context.length <<-0
             inner.iter <<-0
           }
-          while (my.changes[iter] != "# END"){
+          while (my.changes[iter] != "~~ END"){
             inner.iter <- inner.iter + 1
             pattern[inner.iter] <- my.changes[iter]
             res.pattern[inner.iter - context.length] <- my.changes[iter]
