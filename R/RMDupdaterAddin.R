@@ -330,7 +330,7 @@ RMDupdaterAddin <- function() {
   shiny::runGadget(ui, server)
 }
 
-RMDupdaterAddin()
+#RMDupdaterAddin()
 
 
 
