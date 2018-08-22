@@ -1,5 +1,3 @@
-# hehe
-title: "Hello"
 library(shiny)
 library(miniUI)
 library(rstudioapi)
