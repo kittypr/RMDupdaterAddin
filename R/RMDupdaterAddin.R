@@ -1,3 +1,5 @@
+# hehe
+title: "Hello"
 library(shiny)
 library(miniUI)
 library(rstudioapi)
@@ -101,7 +103,6 @@ RMDupdaterAddin <- function() {
   server <- function(input, output, session) {
     my.changes <- NaN
     context <- NaN
-    original <- NaN
     iter <- 1
     outer.iter <- 1
     memory <- c()
@@ -161,11 +162,15 @@ RMDupdaterAddin <- function() {
 
     Highlight <- function(){
       context <<- rstudioapi::getActiveDocumentContext()
-      original <<- context$contents
-      if (original == ""){
+      content <- context$contents
+      if (content[1] == "" & length(content) == 1){
         print("Set your cursor to *.rmd document and try again")
       }
       else {
+        indexes <- grep("^[[:blank:]]*#.*", content, value = FALSE, invert = TRUE)
+        original.without.comments <- grep("^[[:blank:]]*#.*", content, value = TRUE, invert = TRUE)
+        shift.content <- list(index = indexes, content = original.without.comments)
+        original <- shift.content$content
         context.length <- 0
         pattern <- c("")
         res.pattern <- c("")
@@ -196,17 +201,21 @@ RMDupdaterAddin <- function() {
           candidate <- Find(pattern = pattern, original = original)
           res.candidate <- Find(pattern = res.pattern, original = original)
           if (length(candidate) > 0){
-            rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(candidate[1]+context.length, 1),
-                                                                      rstudioapi::document_position(candidate[1]+pattern.length-1, nchar(pattern[pattern.length])+1)),
+            start.line <- shift.content$index[candidate[1]+context.length]
+            end.line <- shift.content$index[candidate[1]+pattern.length-1]
+            rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(start.line, 1),
+                                                                      rstudioapi::document_position(end.line, nchar(pattern[pattern.length])+1)),
                                            id = NULL)
           }
           else if (length(res.candidate) > 0){
-            rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(res.candidate[1], 1),
-                                                                      rstudioapi::document_position(res.candidate[1]+res.pattern.length-1, nchar(res.pattern[res.pattern.length])+1)),
+            start.line <- shift.content$index[res.candidate[1]]
+            end.line <- shift.content$index[res.candidate[1]+res.pattern.length-1]
+            rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(start.line, 1),
+                                                                      rstudioapi::document_position(end.line, nchar(res.pattern[res.pattern.length])+1)),
                                            id = NULL)
           }
           else {
-            message("NOT FOUND")
+            message("- - - - - NOT FOUND. BLOCK: - - - - -")
             print(res.pattern)
           }
         }
@@ -323,7 +332,7 @@ RMDupdaterAddin <- function() {
   shiny::runGadget(ui, server)
 }
 
-#RMDupdaterAddin()
+RMDupdaterAddin()
 
 
 
