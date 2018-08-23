@@ -73,7 +73,7 @@ CopyAndCompare <- function(echo.true.report, fair.id, name){
   close(con=out)
 
   knitr::knit(input = copy, output = result)
-  answer <- Compare(echo.md.path = result, fair.id = fair.id)
+  answer <- Compare(echo.md.path = result, fair.id = fair.id, name = name)
   file.remove(c(copy, result))
   answer
 }
@@ -92,7 +92,7 @@ ExtractTitle <- function(content){
 
 ExtractName <- function(path){
   name.ext <- basename(path)
-  name <- gsub("\\.*$", "", name.ext)
+  name <- gsub("\\..*$", "", name.ext)
 }
 
 Ignore <- function(copy, echo){
@@ -100,7 +100,8 @@ Ignore <- function(copy, echo){
   extension <- ".changes"
   if (file.exists(gitignore)){
     content <- readLines(gitignore)
-    gitfile <- file(description=gitignore, open="w", encoding = "UTF-8")
+    gitfile <- file(description=gitignore, open="a+", encoding = "UTF-8")
+    write("", file=gitfile, append=TRUE)
     result <- grep(copy, content, fixed=TRUE)
     if (length(result) == 0){
       write(copy, file=gitfile, append=TRUE)
