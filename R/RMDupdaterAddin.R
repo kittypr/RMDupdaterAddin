@@ -29,9 +29,9 @@ Upload <- function(odt.report, report.name, report.name.draft, sync.path){
   cat("\n", fair.string, draft.string,file=sync.path,sep="\n",append=TRUE)
 }
 
-Compare <- function(echo.md.path, fair.id){
+Compare <- function(echo.md.path, fair.id, name){
   # run the comparing python script
-  answer <- shell(paste0("RMD_updater.py ", echo.md.path, " ", fair.id), intern = TRUE) # getting answer from python
+  answer <- shell(paste0("RMD_updater.py ", echo.md.path, " ", fair.id, " ", name), intern = TRUE) # getting answer from python
 }
 
 PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
@@ -63,15 +63,18 @@ Echo <- function(content, context){
   #  transformed <- paste(spec$refactored, collapse = "\n")  # return as string witn \n
 }
 
-CopyAndCompare <- function(echo.true.report, fair.id){
-  file.create("report_copy.rmd")
-  out <- file(description="report_copy.rmd", open="w", encoding="UTF-8")
+CopyAndCompare <- function(echo.true.report, fair.id, name){
+  copy <- paste0(name, "_report_copy.rmd")
+  result<- paste0(name, "_echo_report.rmd")
+  Ignore(copy, result)
+  file.create(copy)
+  out <- file(description=copy, open="w", encoding="UTF-8")
   writeLines(echo.true.report, con=out)
   close(con=out)
 
-  knitr::knit(input = "report_copy.rmd", output = "echo_report.md")
-  answer <- Compare(echo.md.path = "echo_report.md", fair.id = fair.id)
-  file.remove(c("report_copy.rmd", "echo_report.md"))
+  knitr::knit(input = copy, output = result)
+  answer <- Compare(echo.md.path = result, fair.id = fair.id)
+  file.remove(c(copy, result))
   answer
 }
 
@@ -86,6 +89,42 @@ ExtractTitle <- function(content){
     title <- info$title
   }
 }
+
+ExtractName <- function(path){
+  name.ext <- basename(path)
+  name <- gsub("\\.*$", "", name.ext)
+}
+
+Ignore <- function(copy, echo){
+  gitignore <- ".gitignore"
+  extension <- "*.changes"
+  if (file.exists(gitignore)){
+    content <- readLines(gitignore)
+    gitfile <- file(description=gitignore, open="w", encoding = "UTF-8")
+    result <- grep(copy, content, fixed=TRUE)
+    if (length(result) == 0){
+      write(copy, file=gitfile, append=TRUE)
+    }
+    result <- grep(echo, content, fixed=TRUE)
+    if (length(result) == 0){
+      write(echo, file=gitfile, append=TRUE)
+    }
+    result <- grep(extension, content, fixed=TRUE)
+    if (length(result) == 0){
+      write(extension, file=gitfile, append=TRUE)
+    }
+    close(gitfile)
+  }
+  else{
+    file.create(gitignore)
+    gitfile <- file(description=gitignore, open="w", encoding="UTF-8")
+    write(copy, file=gitfile, append=TRUE)
+    write(echo, file=gitfile, append=TRUE)
+    write(extension, file=gitfile, append=TRUE)
+    close(gitfile)
+  }
+}
+
 
 RMDupdaterAddin <- function() {
 
@@ -127,37 +166,47 @@ RMDupdaterAddin <- function() {
     odt.report <- NaN
     sync.path <- NaN
     sync.info <- NaN
+    name <- NaN
 
-    GetIformation <- function(){
+    GetInformation <- function(){
       # extracting report name
       current.report <<- rstudioapi::getActiveDocumentContext()
       report.path <<- current.report$path
+      name <<- ExtractName(report.path)
 
-      report.name <<- paste0("\"", ExtractTitle(current.report$contents), "\"")
-      report.name.draft <<- gsub("\"$", ". Draft\"", report.name)
-      project.path <- rstudioapi::getActiveProject() # path for sync_reports
-      sync.path <<- paste0(project.path, "/sync_reports.sh")
-      sync.info <<- readLines(sync.path)
 
-      # looking for report info in sync_reports.sh
-      regular.exp <- paste0("^# ", report.name)
-      result <<- grep(regular.exp, sync.info)
+      title <- ExtractTitle(current.report$contents)
+      if (is.null(title)){
+        NULL
+      }
+      else {
+        report.name <<- paste0("\"", title, "\"")
+        report.name.draft <<- gsub("\"$", ". Draft\"", report.name)
+        project.path <- rstudioapi::getActiveProject() # path for sync_reports
+        sync.path <<- paste0(project.path, "/sync_reports.sh")
+        sync.info <<- readLines(sync.path)
 
-      # building path to odt
-      find.odt.report <<- gsub("\\.Rmd$", ".odt", report.path) # CHANGE BEFORE RELEASE to .rmd
-      normalized.path <- normalizePath(find.odt.report)
-      normalized.project.path <- normalizePath(project.path)
-      new.odt.report <- gsub(paste0(normalized.project.path, "\\"), "", normalized.path, fixed = TRUE)
-      odt.report <<- gsub("\\", "/", new.odt.report, fixed = TRUE)
-      if ( ! file.exists(odt.report)){
-        message(paste0("File ", odt.report, " was not found."))
-        if (menu(c("Yes"), title = "Select it manually?") == 1){
-          odt.report <<- rstudioapi::selectFile(caption = "Select knitted report:", label = "Select", path = NULL,
-                                             filter = "*.odt", existing = TRUE)
+        # looking for report info in sync_reports.sh
+        regular.exp <- paste0("^# ", report.name)
+        result <<- grep(regular.exp, sync.info)
+
+        # building path to odt
+        find.odt.report <<- gsub("\\.Rmd$", ".odt", report.path) # CHANGE BEFORE RELEASE to .rmd
+        normalized.path <- normalizePath(find.odt.report)
+        normalized.project.path <- normalizePath(project.path)
+        new.odt.report <- gsub(paste0(normalized.project.path, "\\"), "", normalized.path, fixed = TRUE)
+        odt.report <<- gsub("\\", "/", new.odt.report, fixed = TRUE)
+        if ( ! file.exists(odt.report)){
+          message(paste0("File ", odt.report, " was not found."))
+          if (menu(c("Yes"), title = "Select it manually?") == 1){
+            odt.report <<- rstudioapi::selectFile(caption = "Select knitted report:", label = "Select", path = NULL,
+                                               filter = "*.odt", existing = TRUE)
+          }
+          else {
+            shiny::stopApp()
+          }
         }
-        else {
-          shiny::stopApp()
-        }
+        returnValue(1)
       }
     }
 
@@ -170,8 +219,6 @@ RMDupdaterAddin <- function() {
       else {
         indexes <- grep("^$", content, value = FALSE, invert = TRUE)
         original.without.comments <- grep("^$", content, value = TRUE, invert = TRUE)
-#        indexes <- seq(1, length(content))  # temporary
-#        original.without.comments <- content  # temporary
         shift.content <- list(index = indexes, content = original.without.comments)
         original <- shift.content$content
         context.length <- 0
@@ -227,8 +274,11 @@ RMDupdaterAddin <- function() {
     }
 
     shiny::observeEvent(input$upd, {
-      GetIformation()
-      if (length(result) == 0){  # report info wasnt found
+      info <- GetInformation()
+      if (is.null(info)){
+        shiny::stopApp()
+      }
+      else if (length(result) == 0){  # report info wasnt found
         message(paste0("Information associated with ", report.name, " was not found in sync_reports.sh."))
         choice <- menu(c("Yes"), title = "Do you want create new fair and draft?")
         if (choice == 1){
@@ -244,7 +294,7 @@ RMDupdaterAddin <- function() {
         draft.id <<- strsplit(draft.string, split = " ", fixed = TRUE)[[c(1,3)]]
         message("Draft info was found. Comparison process . . .")
         echo.true.report <- Echo(content = current.report$contents, current.report)
-        answer <- CopyAndCompare(echo.true.report, fair.id)
+        answer <- CopyAndCompare(echo.true.report, fair.id, name)
         if (answer[1] == "OUTDATED BLOCKS FOUNDED"){
           message("Changes detected. Please use 'Find next' button to see outdated blocks.")
           message("You can ignore changes and use 'Force update' button.")
@@ -307,12 +357,14 @@ RMDupdaterAddin <- function() {
 
     shiny::observeEvent(input$nxt, {
       if (iter == 1){
-        log.file <- "log.changes"
-        if ( ! file.exists("log.changes")){
+        log.file <- paste0(name, ".changes")
+        if ( ! file.exists(log.file)){
           massage("Can't find *.changes file.")
           message("Use 'Update' button to create it.")
         }
-        my.changes <<- readLines(log.file)
+        else{
+          my.changes <<- readLines(log.file)
+        }
       }
       if (length(my.changes) == 1){
         message("- - - - - NO CHANGES DETECTED - - - - -")
