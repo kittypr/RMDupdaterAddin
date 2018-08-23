@@ -29,9 +29,9 @@ Upload <- function(odt.report, report.name, report.name.draft, sync.path){
   cat("\n", fair.string, draft.string,file=sync.path,sep="\n",append=TRUE)
 }
 
-Compare <- function(echo.md.path, fair.id, name){
+Compare <- function(echo.md.path, fair.id, name, fair){
   # run the comparing python script
-  answer <- shell(paste0("RMD_updater.py ", echo.md.path, " ", fair.id, " ", name), intern = TRUE) # getting answer from python
+  answer <- shell(paste0("RMD_updater.py ", echo.md.path, " ", fair.id, " ", name, " ", fair), intern = TRUE) # getting answer from python
 }
 
 PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
@@ -54,7 +54,6 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
 
 Echo <- function(content, context){
   # copying content of current report and replace ECHO=FALSE to ECHO=TRUE, return  changed content
-  file.create("report_copy.rmd")
   spec <- PerformRefactor(content, from = "knitr::opts_chunk$set(echo = FALSE)", to = "knitr::opts_chunk$set(echo = TRUE)")  # CHANGE BEFORE RELIASE
   if (spec$changes == 0){
     spec <<- PerformRefactor(content, from = "echo = FALSE", to = "echo = TRUE")  # TODO: make it regular
@@ -64,17 +63,19 @@ Echo <- function(content, context){
 }
 
 CopyAndCompare <- function(echo.true.report, fair.id, name){
-  copy <- paste0(name, "_report_copy.rmd")
-  result<- paste0(name, "_echo_report.rmd")
-  Ignore(copy, result)
+  copy <- paste0(name, "_copy_rmdupd.rmd")
+  result <- paste0(name, "_echo_rmdupd.md")
+  output <- paste0(name, "_output_rmdupd.odt")
+  googledrive::drive_download(file = googledrive::as_id(fair.id), path = output)
+  Ignore(copy, result, output)
   file.create(copy)
   out <- file(description=copy, open="w", encoding="UTF-8")
   writeLines(echo.true.report, con=out)
   close(con=out)
 
   knitr::knit(input = copy, output = result)
-  answer <- Compare(echo.md.path = result, fair.id = fair.id, name = name)
-  file.remove(c(copy, result))
+  answer <- Compare(echo.md.path = result, fair.id = fair.id, name = name, fair = output)
+  file.remove(c(copy, result, output))
   answer
 }
 
@@ -95,13 +96,17 @@ ExtractName <- function(path){
   name <- gsub("\\..*$", "", name.ext)
 }
 
-Ignore <- function(copy, echo){
+Ignore <- function(copy, echo, out){
   gitignore <- ".gitignore"
   extension <- ".changes"
   if (file.exists(gitignore)){
     content <- readLines(gitignore)
     gitfile <- file(description=gitignore, open="a+", encoding = "UTF-8")
     write("", file=gitfile, append=TRUE)
+    result <- grep(out, content, fixed=TRUE)
+    if (length(result) == 0){
+      write(out, file=gitfile, append=TRUE)
+    }
     result <- grep(copy, content, fixed=TRUE)
     if (length(result) == 0){
       write(copy, file=gitfile, append=TRUE)
