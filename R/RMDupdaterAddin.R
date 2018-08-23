@@ -97,7 +97,7 @@ ExtractName <- function(path){
 
 Ignore <- function(copy, echo){
   gitignore <- ".gitignore"
-  extension <- "*.changes"
+  extension <- ".changes"
   if (file.exists(gitignore)){
     content <- readLines(gitignore)
     gitfile <- file(description=gitignore, open="w", encoding = "UTF-8")
