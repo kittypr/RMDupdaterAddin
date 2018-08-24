@@ -9,9 +9,12 @@ Description: More about what it does (maybe more than one line)
 Depends:
     R (>= 3.4)
 Imports:
-    shiny (>= 0.13),
-    miniUI (>= 0.1.1),
+    shiny (>= 1.1.0),
+    miniUI (>= 0.1.1.1),
     rstudioapi (>= 0.4),
+    googledrive (>= 0.1.1),
+    yaml (>= 2.2.0)
+    knitr (>= 1.20)		
 License: MIT
 Encoding: UTF-8
 LazyData: true
