@@ -31,7 +31,7 @@ Upload <- function(odt.report, report.name, report.name.draft, sync.path){
 
 Compare <- function(echo.md.path, fair.id, name, fair){
   # run the comparing python script
-  answer <- shell(paste0("RMD_updater.py ", echo.md.path, " ", fair.id, " ", name, " ", fair), intern = TRUE) # getting answer from python
+  answer <- shell(paste0("RMD_updater.py ", echo.md.path, " ", fair.id, " ", name, " ", fair, " "), intern = TRUE) # getting answer from python
 }
 
 PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
@@ -62,17 +62,20 @@ Echo <- function(content, context){
   #  transformed <- paste(spec$refactored, collapse = "\n")  # return as string witn \n
 }
 
-CopyAndCompare <- function(echo.true.report, fair.id, name){
+CopyAndCompare <- function(echo.true.report, fair.id, name, current.path){
+  Ignore()  # TODO: check for success
+
   copy <- paste0(name, "_copy_rmdupd.rmd")
   result <- paste0(name, "_echo_rmdupd.md")
   output <- paste0(name, "_output_rmdupd.odt")
-  googledrive::drive_download(file = googledrive::as_id(fair.id), path = output)
-  Ignore(copy, result, output)
+
+  googledrive::drive_download(file = googledrive::as_id(fair.id), path = output, overwrite = TRUE)
+
+
   file.create(copy)
   out <- file(description=copy, open="w", encoding="UTF-8")
   writeLines(echo.true.report, con=out)
   close(con=out)
-
   knitr::knit(input = copy, output = result)
   answer <- Compare(echo.md.path = result, fair.id = fair.id, name = name, fair = output)
   file.remove(c(copy, result, output))
@@ -96,37 +99,38 @@ ExtractName <- function(path){
   name <- gsub("\\..*$", "", name.ext)
 }
 
-Ignore <- function(copy, echo, out){
+Ignore <- function(){
   gitignore <- ".gitignore"
   extension <- ".changes"
+  textension <- ".tchanges"
+  files <- "*_rmdupd.*"
   if (file.exists(gitignore)){
     content <- readLines(gitignore)
     gitfile <- file(description=gitignore, open="a+", encoding = "UTF-8")
-    write("", file=gitfile, append=TRUE)
-    result <- grep(out, content, fixed=TRUE)
+    result <- grep(files, content, fixed=TRUE)
     if (length(result) == 0){
-      write(out, file=gitfile, append=TRUE)
-    }
-    result <- grep(copy, content, fixed=TRUE)
-    if (length(result) == 0){
-      write(copy, file=gitfile, append=TRUE)
-    }
-    result <- grep(echo, content, fixed=TRUE)
-    if (length(result) == 0){
-      write(echo, file=gitfile, append=TRUE)
+      write("", file=gitfile, append=TRUE)
+      write(files, file=gitfile, append=TRUE)
     }
     result <- grep(extension, content, fixed=TRUE)
     if (length(result) == 0){
+      write("", file=gitfile, append=TRUE)
       write(extension, file=gitfile, append=TRUE)
+    }
+    result <- grep(textension, content, fixed=TRUE)
+    if (length(result) == 0){
+      write("", file=gitfile, append=TRUE)
+      write(textension, file=gitfile, append=TRUE)
     }
     close(gitfile)
   }
   else{
     file.create(gitignore)
     gitfile <- file(description=gitignore, open="w", encoding="UTF-8")
-    write(copy, file=gitfile, append=TRUE)
-    write(echo, file=gitfile, append=TRUE)
+    write("", file=gitfile, append=TRUE)
+    write(files, file=gitfile, append=TRUE)
     write(extension, file=gitfile, append=TRUE)
+    write(textension, file=gitfile, append=TRUE)
     close(gitfile)
   }
 }
@@ -151,7 +155,8 @@ RMDupdaterAddin <- function() {
     miniUI::miniButtonBlock(
       shiny::actionButton("fupd", "Force update", icon = shiny::icon("fast-backward")),
       border = "top"
-    )
+    ),
+    shiny::htmlOutput("diff")
   )
 
 
@@ -300,10 +305,14 @@ RMDupdaterAddin <- function() {
         draft.id <<- strsplit(draft.string, split = " ", fixed = TRUE)[[c(1,3)]]
         message("Draft info was found. Comparison process . . .")
         echo.true.report <- Echo(content = current.report$contents, current.report)
-        answer <- CopyAndCompare(echo.true.report, fair.id, name)
+        answer <- CopyAndCompare(echo.true.report, fair.id, name, report.path)
         if (answer[1] == "OUTDATED BLOCKS FOUNDED"){
           message("Changes detected. Please use 'Find next' button to see outdated blocks.")
           message("You can ignore changes and use 'Force update' button.")
+          html.name <- paste0(name, "_rmdupd.html")
+          if (file.exists(html.name)){
+            output$diff <- shiny::renderUI(expr = shiny::HTML(readLines(html.name)))
+            }
         }
         else if (answer[1] == "UP TO DATE"){
           message("RMDupdater didn't detect any changes.")
@@ -389,7 +398,7 @@ RMDupdaterAddin <- function() {
 
   }
 
-  viewer <- shiny::paneViewer()
+  viewer <- shiny::dialogViewer(dialogName = 'RMDupdater', width = 1200, height = 600)
   shiny::runGadget(ui, server)
 }
 
