@@ -13,7 +13,7 @@ Imports:
     miniUI (>= 0.1.1.1),
     rstudioapi (>= 0.4),
     googledrive (>= 0.1.1),
-    yaml (>= 2.2.0)
+    yaml (>= 2.2.0),
     knitr (>= 1.20)		
 License: MIT
 Encoding: UTF-8
