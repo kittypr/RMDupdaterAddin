@@ -374,7 +374,7 @@ RMDupdaterAddin <- function() {
       if (iter == 1){
         log.file <- paste0(name, ".changes")
         if ( ! file.exists(log.file)){
-          massage("Can't find *.changes file.")
+          message("Can't find *.changes file.")
           message("Use 'Update' button to create it.")
         }
         else{
