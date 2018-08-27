@@ -79,7 +79,7 @@ CopyAndCompare <- function(echo.true.report, fair.id, name, current.path){
   close(con=out)
   knitr::knit(input = copy, output = result)
   answer <- Compare(echo.md.path = result, fair.id = fair.id, name = name, fair = output)
-  file.remove(c(copy, result, output))
+  #file.remove(c(copy, result, output))
   answer
 }
 
@@ -147,25 +147,31 @@ RMDupdaterAddin <- function() {
     ),
     miniUI::miniButtonBlock(
       shiny::actionButton("nxt", "Find next", icon = shiny::icon("arrow-right")),
-      border = "bottom"
-    ),
-    miniUI::miniButtonBlock(
       shiny::actionButton("prv", "Find prev", icon = shiny::icon("arrow-left")),
       border = "bottom"
     ),
     miniUI::miniButtonBlock(
+      shiny::actionButton("tnxt", "Find text next", icon = shiny::icon("arrow-right")),
+      shiny::actionButton("tprv", "Find text prev", icon = shiny::icon("arrow-left")),
+      border = "bottom"
+    ),
+    shiny::textOutput("changed"),
+    miniUI::miniButtonBlock(
       shiny::actionButton("fupd", "Force update", icon = shiny::icon("fast-backward")),
       border = "top"
-    ),
-    shiny::htmlOutput("diff")
+    )
   )
 
 
   server <- function(input, output, session) {
-    my.changes <- NaN
+    my.changes <- NULL
+    my.text.changes <- NULL
     context <- NaN
     iter <- 1
     outer.iter <- 1
+    text.iter <- 1
+    text.outer.iter <- 1
+    text.memory <- c()
     memory <- c()
 
     draft.id <- NaN
@@ -222,16 +228,22 @@ RMDupdaterAddin <- function() {
       }
     }
 
-    Highlight <- function(){
+    Highlight <- function(start.line, end.line, end.length){
+      rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(start.line, 1),
+                                                                rstudioapi::document_position(end.line, end.length+1)), id = NULL)
+    }
+
+    ParseChanges <- function(){
       context <<- rstudioapi::getActiveDocumentContext()
       content <- context$contents
       if (content[1] == "" & length(content) == 1){
-        print("Set your cursor to *.rmd document and try again")
+        cat("Set your cursor to *.rmd document and try again")
+        cat("\n")
       }
       else {
         indexes <- grep("^$", content, value = FALSE, invert = TRUE)
-        original.without.comments <- grep("^$", content, value = TRUE, invert = TRUE)
-        shift.content <- list(index = indexes, content = original.without.comments)
+        original.without.empty <- grep("^$", content, value = TRUE, invert = TRUE)
+        shift.content <- list(index = indexes, content = original.without.empty)
         original <- shift.content$content
         context.length <- 0
         pattern <- c("")
@@ -265,23 +277,119 @@ RMDupdaterAddin <- function() {
           if (length(candidate) > 0){
             start.line <- shift.content$index[candidate[1]+context.length]
             end.line <- shift.content$index[candidate[1]+pattern.length-1]
-            rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(start.line, 1),
-                                                                      rstudioapi::document_position(end.line, nchar(pattern[pattern.length])+1)),
-                                           id = NULL)
+            end.length <- nchar(pattern[pattern.length])+1
+            Highlight(start.line, end.line, end.length)
           }
           else if (length(res.candidate) > 0){
             start.line <- shift.content$index[res.candidate[1]]
             end.line <- shift.content$index[res.candidate[1]+res.pattern.length-1]
-            rstudioapi::setSelectionRanges(rstudioapi::document_range(rstudioapi::document_position(start.line, 1),
-                                                                      rstudioapi::document_position(end.line, nchar(res.pattern[res.pattern.length])+1)),
-                                           id = NULL)
+            end.length <- nchar(res.pattern[res.pattern.length])+1
+            Highlight(start.line, end.line, end.length)
           }
           else {
             message("- - - - - NOT FOUND. BLOCK: - - - - -")
-            print(res.pattern)
+            cat(res.pattern)
+            cat("\n")
           }
         }
         iter <<- iter + 1
+      }
+    }
+
+    ParseTchanges <- function(){
+      raw.text <- c("")
+      context <<- rstudioapi::getActiveDocumentContext()
+      content <- context$contents
+      if (content[1] == "" & length(content) == 1){
+        cat("Set your cursor to *.rmd document and try again")
+        cat("\n")
+      }
+      else {
+        indexes <- grep("^$", content, value = FALSE, invert = TRUE)
+        original.without.empty <- grep("^$", content, value = TRUE, invert = TRUE)
+        shift.content <- list(index = indexes, content = original.without.empty)
+        original <- shift.content$content
+        context.length <- 0
+        pattern <- c("")
+        res.pattern <- c("")
+        if (my.text.changes[text.iter] == "~~ CONTEXT") {
+          text.memory[text.outer.iter] <<- text.iter
+          text.outer.iter <<- text.outer.iter +1
+          text.iter <<- text.iter + 1
+          inner.iter <- 0
+          while (my.text.changes[text.iter] != "~~ CHANGED BLOCK"){
+            inner.iter <- inner.iter + 1
+            pattern[inner.iter] <- my.text.changes[text.iter]
+            text.iter <<- text.iter + 1
+          }
+          text.iter <<- text.iter + 1
+          context.length <- inner.iter
+          if (context.length == 1 & pattern[1] == ""){
+            context.length <<-0
+            inner.iter <<-0
+          }
+          while (my.text.changes[text.iter] != "~~ TEXT"){
+            inner.iter <- inner.iter + 1
+            pattern[inner.iter] <- my.text.changes[text.iter]
+            res.pattern[inner.iter - context.length] <- my.text.changes[text.iter]
+            text.iter <<- text.iter + 1
+          }
+          text.iter <<- text.iter + 1
+          raw.text.iter <- 0
+          while (my.text.changes[text.iter] != "~~ END"){
+            raw.text.iter <- raw.text.iter + 1
+            raw.text[raw.text.iter] <- my.text.changes[text.iter]
+            text.iter <<- text.iter + 1
+          }
+          raw.text.length <- length(raw.text)
+          pattern.length <- length(pattern)
+          res.pattern.length <- length(res.pattern)
+          if (res.pattern.length == 1 & res.pattern[1] == ""){
+            rexpr <- paste0("^.*", raw.text[1] ,".*$")
+            raw.candidate <- grep(pattern = rexpr, x = original)
+            if (length(raw.candidate) > 0){
+              start.line <- shift.content$index[raw.candidate[1]]
+              end.line <- shift.content$index[raw.candidate[1]+raw.text.length-1]
+              end.length <- nchar(shift.content$content[end.line])+1
+              Highlight(start.line, end.line, end.length)
+            }
+          } else{
+            candidate <- Find(pattern = pattern, original = original)
+            res.candidate <- Find(pattern = res.pattern, original = original)
+            if (length(candidate) > 0){
+              start.line <- shift.content$index[candidate[1]+context.length]
+              end.line <- shift.content$index[candidate[1]+pattern.length-1]
+              end.length <- nchar(pattern[pattern.length])+1
+              Highlight(start.line, end.line, end.length)
+            }
+            else if (length(res.candidate) > 0){
+              start.line <- shift.content$index[res.candidate[1]]
+              end.line <- shift.content$index[res.candidate[1]+res.pattern.length-1]
+              end.length <- nchar(res.pattern[res.pattern.length])+1
+              Highlight(start.line, end.line, end.length)
+            }
+            else {
+              message("- - - - - NOT FOUND. BLOCK: - - - - -")
+              cat(res.pattern)
+              cat("\n")
+              }
+            }
+        }
+        text.iter <<- text.iter + 1
+      }
+      raw.text
+    }
+
+    ReadChangesFiles <- function(){
+      log.file <- paste0(name, ".changes")
+      log.text.file <- paste0(name, ".tchanges")
+      if ( ! file.exists(log.file) | ! file.exists(log.text.file)){
+        message("Can't find *.changes/*.tchanges file.")
+        message("Use 'Update' button to create it.")
+      }
+      else{
+        my.changes <<- readLines(log.file)
+        my.text.changes <<- readLines(log.text.file)
       }
     }
 
@@ -312,7 +420,7 @@ RMDupdaterAddin <- function() {
           message("You can ignore changes and use 'Force update' button.")
           html.name <- paste0(name, "_rmdupd.html")
           if (file.exists(html.name)){
-            output$diff <- shiny::renderUI(expr = shiny::HTML(readLines(html.name)))
+            rstudioapi::viewer(html.name)
             }
         }
         else if (answer[1] == "UP TO DATE"){
@@ -367,20 +475,13 @@ RMDupdaterAddin <- function() {
       else{
         outer.iter <<- outer.iter - 2
         iter <<- memory[outer.iter]
-        Highlight()
+        ParseChanges()
       }
     })
 
     shiny::observeEvent(input$nxt, {
-      if (iter == 1){
-        log.file <- paste0(name, ".changes")
-        if ( ! file.exists(log.file)){
-          message("Can't find *.changes file.")
-          message("Use 'Update' button to create it.")
-        }
-        else{
-          my.changes <<- readLines(log.file)
-        }
+      if (is.null(my.changes)){
+          ReadChangesFiles()
       }
       if (length(my.changes) == 1){
         message("- - - - - NO CHANGES DETECTED - - - - -")
@@ -389,7 +490,35 @@ RMDupdaterAddin <- function() {
         message("- - - - - END OF CHANGES FILE. USE 'FIND PREV' OR 'DONE' - - - - -")
       }
       else {
-        Highlight()
+        ParseChanges()
+      }
+    })
+
+    shiny::observeEvent(input$tprv, {
+      if (text.outer.iter == 1 | text.outer.iter == 2){
+        message("- - - - - YOU ARE IN THE BEGINNING OF THE FILE. - - - - -")
+      }
+      else{
+        text.outer.iter <<- text.outer.iter - 2
+        text.iter <<-text.memory[text.outer.iter]
+        text <- ParseTchanges()
+        output$changed <- shiny::renderText(expr = text)
+      }
+    })
+
+    shiny::observeEvent(input$tnxt, {
+      if (is.null(my.text.changes)){
+        ReadChangesFiles()
+      }
+      if (length(my.text.changes) == 1){
+        message("- - - - - NO CHANGES DETECTED - - - - -")
+      }
+      else if (text.iter > length(my.text.changes)){
+        message("- - - - - END OF TCHANGES FILE. USE 'FIND PREV' OR 'DONE' - - - - -")
+      }
+      else {
+        text <- ParseTchanges()
+        output$changed <- shiny::renderText(expr = text)
       }
     })
 

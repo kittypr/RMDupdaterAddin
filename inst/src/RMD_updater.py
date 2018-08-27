@@ -3,7 +3,8 @@ import argparse
 import os
 import subprocess
 
-import check, mdparse
+import check
+import mdparse
 
 
 def check_token():
@@ -12,32 +13,34 @@ def check_token():
     answer = proc.communicate()
 
 
-def write_changes_file(changed_code_ancestors, filename):
+def write_changes_file(changes_string, filename):
     filename += '.changes'
     with open(filename, 'w') as changes_file:
-        changes_file.write(changed_code_ancestors)
+        changes_file.write(changes_string)
 
 
-def write_tchanges_file(deleted, added, filename):
+def write_tchanges_file(tchanges_string, filename):
     filename += '.tchanges'
     with open(filename, 'w') as tchanges_file:
-        tchanges_file.write("~~ DELETED\n")
-        tchanges_file.write('\n'.join(deleted))
-        tchanges_file.write("\n~~ ADDED\n")
-        tchanges_file.write('\n'.join(added))
-        tchanges_file.write("\n~~ END\n")
+        tchanges_file.write(tchanges_string)
 
 
 def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
     extractor = mdparse.MdExtractor(warnings)
-    tables, text = extractor.parse(input_echo_md)
+    tables, text, plain_text = extractor.parse(input_echo_md)
     fair_extractor = mdparse.MdExtractor(False)
-    fair_tables, fair_text = fair_extractor.parse(fair)
-    check.create_diff(text.values(), fair_text.values(), filename)
-    text_result = check.run_local_text_comparison(text.values(), fair_text.values())
-    if len(text_result['deleted']) > 0 or len(text_result['added']) > 0:
-        pass
-        # check.create_diff(text_result['deleted'], text_result['added'], filename)
+    fair_tables, null, fair_plain_text = fair_extractor.parse(fair)
+    check.create_diff(plain_text, fair_plain_text, filename)
+    text_result, changed = check.run_local_text_comparison(plain_text, fair_plain_text)
+    tchanges_string = ''
+    if len(changed) > 0:
+        for change in changed:
+            if text[change][2] != '':
+                tchanges_string += '~~ CONTEXT\n' + text[change][1] + '\n~~ CHANGED BLOCK\n' + text[change][2] + \
+                                   '\n~~ TEXT\n' + text[change][0] + '\n~~ END\n'
+            else:
+                tchanges_string += '~~ CONTEXT\n\n~~ CHANGED BLOCK\n\n~~ TEXT\n' + text[change][0] + '\n~~ END\n'
+    write_tchanges_file(tchanges_string, filename)
     result = check.run_local_comparison(tables, fair_tables)
     if result is None:  # some errors occurred
         return
@@ -46,12 +49,12 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
     else:
         print('OUTDATED BLOCKS FOUNDED')
 
-    changed_code_ancestors = ''
+    changes_string = ''
     for index in tables.keys():
         if index[1] in result:
-            changed_code_ancestors += '~~ CONTEXT\n' + index[0][0] + '\n~~ CHANGED BLOCK\n' + index[0][1] +\
+            changes_string += '~~ CONTEXT\n' + index[0][0] + '\n~~ CHANGED BLOCK\n' + index[0][1] +\
                                           '\n~~ END\n'
-    write_changes_file(changed_code_ancestors, filename)
+    write_changes_file(changes_string, filename)
 
 
 if __name__ == '__main__':

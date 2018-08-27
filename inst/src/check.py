@@ -71,6 +71,7 @@ def create_diff(fromlines, tolines, filename):
 
 def run_local_text_comparison(text, fair_text):
     # find deleted and new blocks
+    changed = list()
     current = frozenset(text)
     actual = frozenset(fair_text)
     difference = actual ^ current
@@ -78,4 +79,6 @@ def run_local_text_comparison(text, fair_text):
     added = actual & difference
     deleted = tuple(deleted)
     added = tuple(added)
-    return {'deleted': deleted, 'added': added}
+    for deleted_text in deleted:
+        changed.append(text.index(deleted_text))
+    return {'deleted': deleted, 'added': added}, changed
