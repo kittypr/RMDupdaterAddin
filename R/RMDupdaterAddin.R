@@ -37,7 +37,7 @@ Compare <- function(echo.md.path, fair.id, name, fair){
 
 PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
 
-  matches <- gregexpr(from, contents, fixed = TRUE)
+  matches <- gregexpr(from, contents)
 
   changes <- sum(unlist(lapply(matches, function(x) {
     if (x[[1]] == -1) 0 else length(x)
@@ -57,7 +57,7 @@ Echo <- function(content, context){
   # copying content of current report and replace ECHO=FALSE to ECHO=TRUE, return  changed content
   spec <- PerformRefactor(content, from = "knitr::opts_chunk$set(echo = FALSE)", to = "knitr::opts_chunk$set(echo = TRUE)")  # CHANGE BEFORE RELIASE
   if (spec$changes == 0){
-    spec <<- PerformRefactor(content, from = "echo = FALSE", to = "echo = TRUE")  # TODO: make it regular
+    spec <<- PerformRefactor(content, from = "echo\\s*=\\s*FALSE", to = "echo = TRUE")  # TODO: make it regular
   }
   spec$refactored  # return as character vector
   #  transformed <- paste(spec$refactored, collapse = "\n")  # return as string witn \n
