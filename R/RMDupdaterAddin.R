@@ -31,7 +31,8 @@ Upload <- function(odt.report, report.name, report.name.draft, sync.path){
 
 Compare <- function(echo.md.path, fair.id, name, fair){
   # run the comparing python script
-  answer <- shell(paste0("RMD_updater.py ", echo.md.path, " ", fair.id, " ", name, " ", fair, " "), intern = TRUE) # getting answer from python
+  path <- system.file("src", "RMD_updater.py", package="RMDupdaterAddin", mustWork = TRUE)
+  answer <- shell(paste0(path, " ", echo.md.path, " ", fair.id, " ", name, " ", fair, " "), intern = TRUE) # getting answer from python
 }
 
 PerformRefactor <- function(contents, from, to, useWordBoundaries = FALSE) {
