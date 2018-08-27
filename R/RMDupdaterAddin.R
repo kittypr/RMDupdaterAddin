@@ -139,7 +139,7 @@ Ignore <- function(){
 
 RMDupdaterAddin <- function() {
 
-  ui <- miniUI::miniPage(
+  ui <- shiny::fluidPage(
     miniUI::gadgetTitleBar("RMD update"),
     miniUI::miniButtonBlock(
       shiny::actionButton("upd", "Update", icon = shiny::icon("backward")),
@@ -155,10 +155,14 @@ RMDupdaterAddin <- function() {
       shiny::actionButton("tprv", "Find text prev", icon = shiny::icon("arrow-left")),
       border = "bottom"
     ),
-    shiny::textOutput("changed"),
+    shiny::fluidPage(
+      shiny::textOutput("changed")),
     miniUI::miniButtonBlock(
       shiny::actionButton("fupd", "Force update", icon = shiny::icon("fast-backward")),
       border = "top"
+    ),
+    shiny::fluidPage(
+      shiny::htmlOutput("diff")
     )
   )
 
@@ -421,6 +425,7 @@ RMDupdaterAddin <- function() {
           html.name <- paste0(name, "_rmdupd.html")
           if (file.exists(html.name)){
             rstudioapi::viewer(html.name)
+            output$diff <- shiny::renderUI(expr = HTML(readLines(html.name)))
             }
         }
         else if (answer[1] == "UP TO DATE"){
@@ -533,6 +538,4 @@ RMDupdaterAddin <- function() {
 }
 
 #RMDupdaterAddin()
-
-
 
