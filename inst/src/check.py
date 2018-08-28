@@ -4,7 +4,7 @@ from httplib2 import Http
 from oauth2client import file as oauth_file
 
 import difflib
-import subprocess
+
 
 CLIENT_SECRETS_FILE = "client_secret.json"
 SCOPES = ['https://www.googleapis.com/auth/documents']
@@ -13,7 +13,7 @@ API_VERSION = 'v1'
 SCRIPT_ID = 'MfUCDEAFYCuUxb_9IPU7Cho8zoCCdfz7A'
 
 
-def run_comparison(gdoc_id, tables):
+def run_comparison(function_name, parameters):  # left for future functionality
     """Calls the Apps Script API.
     """
     store = oauth_file.Storage('token.json')
@@ -22,7 +22,7 @@ def run_comparison(gdoc_id, tables):
     # Call the Apps Script API
     try:
         # call for comparing script
-        request = {'function': 'compare', 'parameters': [gdoc_id, tables]}
+        request = {'function': function_name, 'parameters': parameters}
         response = service.scripts().run(body=request, scriptId=SCRIPT_ID).execute()
         try:
             result = response['response']['result']
@@ -53,20 +53,7 @@ def run_local_comparison(tables, fair_tables):
             result.append(key[1])
     if additional:
         result.extend(additional)
-    if len(result) > 0:
-        return result
-    else:
-        return None
-
-
-def create_diff(fromlines, tolines, filename):
-    # files diff with context
-    html_output = filename + '_rmdupd.html'
-    with open(html_output, 'w') as out:
-        comparator = difflib.HtmlDiff()
-        result = comparator.make_file(fromlines=fromlines, tolines=tolines, context=True, numlines=1)
-        out.write(result)
-        out.write('\n')
+    return result
 
 
 def run_local_text_comparison(text, fair_text):
@@ -82,3 +69,14 @@ def run_local_text_comparison(text, fair_text):
     for deleted_text in deleted:
         changed.append(text.index(deleted_text))
     return {'deleted': deleted, 'added': added}, changed
+
+
+def create_diff(fromlines, tolines, filename):
+    # files diff with context
+    html_output = filename + '_rmdupd.html'
+    with open(html_output, 'w') as out:
+        comparator = difflib.HtmlDiff(tabsize=4)
+        result = comparator.make_file(fromlines=fromlines, tolines=tolines,
+                                      fromdesc='Current report', todesc='Clean copy on Gdoc', context=True, numlines=1)
+        out.write(result)
+        out.write('\n')

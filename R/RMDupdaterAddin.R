@@ -141,29 +141,32 @@ RMDupdaterAddin <- function() {
 
   ui <- shiny::fluidPage(
     miniUI::gadgetTitleBar("RMD update"),
-    miniUI::miniButtonBlock(
-      shiny::actionButton("upd", "Update", icon = shiny::icon("backward")),
-      border = "bottom"
-    ),
-    miniUI::miniButtonBlock(
-      shiny::actionButton("nxt", "Find next", icon = shiny::icon("arrow-right")),
-      shiny::actionButton("prv", "Find prev", icon = shiny::icon("arrow-left")),
-      border = "bottom"
-    ),
-    miniUI::miniButtonBlock(
-      shiny::actionButton("tnxt", "Find text next", icon = shiny::icon("arrow-right")),
-      shiny::actionButton("tprv", "Find text prev", icon = shiny::icon("arrow-left")),
-      border = "bottom"
-    ),
-    shiny::fluidPage(
-      shiny::textOutput("changed")),
-    miniUI::miniButtonBlock(
-      shiny::actionButton("fupd", "Force update", icon = shiny::icon("fast-backward")),
-      border = "top"
-    ),
-    shiny::fluidPage(
-      shiny::htmlOutput("diff")
-    )
+      shiny::tabsetPanel(
+        shiny::tabPanel( "Functions",
+          shiny::fluidRow(
+            miniUI::miniButtonBlock(
+            shiny::actionButton("upd", "Update", icon = shiny::icon("backward")),
+            shiny::actionButton("fupd", "Force update", icon = shiny::icon("fast-backward")))
+          ),
+          shiny::fluidRow(
+            miniUI::miniButtonBlock(
+            shiny::actionButton("prv", "Find prev", icon = shiny::icon("arrow-left")),
+            shiny::actionButton("nxt", "Find next", icon = shiny::icon("arrow-right")))
+          ),
+          shiny::fluidRow(
+            miniUI::miniButtonBlock(
+              shiny::actionButton("tprv", "Find text prev", icon = shiny::icon("arrow-left")),
+              shiny::actionButton("tnxt", "Find text next", icon = shiny::icon("arrow-right")))
+          ),
+          shiny::fluidRow(
+            style = "overflow: scroll",
+            shiny::textOutput("changed")),
+          shiny::fluidRow(
+            miniUI::miniButtonBlock(
+              shiny::actionButton("odiff", "Opel diff file in browser", color = "green")))
+        ),
+      shiny::tabPanel( "Diff", shiny::htmlOutput("diff"))
+      )
   )
 
 
@@ -196,39 +199,45 @@ RMDupdaterAddin <- function() {
       report.path <<- current.report$path
       name <<- ExtractName(report.path)
 
-
+      if (current.report$contents[1] == "" & length(current.report$contents) == 1){
+        cat("Set your cursor to *.rmd document and try again")
+        cat("\n")
+        returnValue(2)
+      }
+      else{
       title <- ExtractTitle(current.report$contents)
       if (is.null(title)){
         NULL
       }
       else {
-        report.name <<- paste0("\"", title, "\"")
-        report.name.draft <<- gsub("\"$", ". Draft\"", report.name)
-        project.path <- rstudioapi::getActiveProject() # path for sync_reports
-        sync.path <<- paste0(project.path, "/sync_reports.sh")
-        sync.info <<- readLines(sync.path)
+          report.name <<- paste0("\"", title, "\"")
+          report.name.draft <<- gsub("\"$", ". Draft\"", report.name)
+          project.path <- rstudioapi::getActiveProject() # path for sync_reports
+          sync.path <<- paste0(project.path, "/sync_reports.sh")
+          sync.info <<- readLines(sync.path)
 
-        # looking for report info in sync_reports.sh
-        regular.exp <- paste0("^# ", report.name)
-        result <<- grep(regular.exp, sync.info)
+          # looking for report info in sync_reports.sh
+          regular.exp <- paste0("^# ", report.name)
+          result <<- grep(regular.exp, sync.info)
 
-        # building path to odt
-        find.odt.report <<- gsub("\\.Rmd$", ".odt", report.path) # CHANGE BEFORE RELEASE to .rmd
-        normalized.path <- normalizePath(find.odt.report)
-        normalized.project.path <- normalizePath(project.path)
-        new.odt.report <- gsub(paste0(normalized.project.path, "\\"), "", normalized.path, fixed = TRUE)
-        odt.report <<- gsub("\\", "/", new.odt.report, fixed = TRUE)
-        if ( ! file.exists(odt.report)){
-          message(paste0("File ", odt.report, " was not found."))
-          if (menu(c("Yes"), title = "Select it manually?") == 1){
-            odt.report <<- rstudioapi::selectFile(caption = "Select knitted report:", label = "Select", path = NULL,
-                                               filter = "*.odt", existing = TRUE)
+          # building path to odt
+          find.odt.report <<- gsub("\\.Rmd$", ".odt", report.path) # CHANGE BEFORE RELEASE to .rmd
+          normalized.path <- normalizePath(find.odt.report)
+          normalized.project.path <- normalizePath(project.path)
+          new.odt.report <- gsub(paste0(normalized.project.path, "\\"), "", normalized.path, fixed = TRUE)
+          odt.report <<- gsub("\\", "/", new.odt.report, fixed = TRUE)
+          if ( ! file.exists(odt.report)){
+            message(paste0("File ", odt.report, " was not found."))
+            if (menu(c("Yes"), title = "Select it manually?") == 1){
+              odt.report <<- rstudioapi::selectFile(caption = "Select knitted report:", label = "Select", path = NULL,
+                                                 filter = "*.odt", existing = TRUE)
+            }
+            else {
+              shiny::stopApp()
+            }
           }
-          else {
-            shiny::stopApp()
-          }
+          returnValue(1)
         }
-        returnValue(1)
       }
     }
 
@@ -402,6 +411,7 @@ RMDupdaterAddin <- function() {
       if (is.null(info)){
         shiny::stopApp()
       }
+      else if (info == 2){}
       else if (length(result) == 0){  # report info wasnt found
         message(paste0("Information associated with ", report.name, " was not found in sync_reports.sh."))
         choice <- menu(c("Yes"), title = "Do you want create new fair and draft?")
@@ -424,7 +434,6 @@ RMDupdaterAddin <- function() {
           message("You can ignore changes and use 'Force update' button.")
           html.name <- paste0(name, "_rmdupd.html")
           if (file.exists(html.name)){
-            rstudioapi::viewer(html.name)
             output$diff <- shiny::renderUI(expr = HTML(readLines(html.name)))
             }
         }
@@ -447,7 +456,12 @@ RMDupdaterAddin <- function() {
 
     shiny::observeEvent(input$fupd, {
       if (is.nan(draft.id)){
-        GetIformation()
+        info <- GetInformation()
+        if (is.null(info)){
+          shiny::stopApp()
+        }
+        else if (info == 2){}
+        else {
         if (length(result) == 0){  # report info wasnt found
           message("Files were not found in sync_reports.sh.")
           message("Use 'Update' button.")
@@ -462,7 +476,7 @@ RMDupdaterAddin <- function() {
           }
           shiny::stopApp()
         }
-      }
+      }}
       else {
         choice <- menu(c("Yes"), title = "Do you want update draft?")
         if (choice == 1){
@@ -511,6 +525,11 @@ RMDupdaterAddin <- function() {
       }
     })
 
+    shiny::observeEvent(input$odiff, {
+      html.name <- paste0(name, "_rmdupd.html")
+      rstudioapi::viewer(html.name)
+    })
+
     shiny::observeEvent(input$tnxt, {
       if (is.null(my.text.changes)){
         ReadChangesFiles()
@@ -538,4 +557,6 @@ RMDupdaterAddin <- function() {
 }
 
 #RMDupdaterAddin()
+
+
 
