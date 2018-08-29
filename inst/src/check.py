@@ -74,9 +74,9 @@ def run_local_text_comparison(text, fair_text):
 def create_diff(fromlines, tolines, filename):
     # files diff with context
     html_output = filename + '_rmdupd.html'
-    with open(html_output, 'w') as out:
+    with open(html_output, 'wb') as out:
         comparator = difflib.HtmlDiff(tabsize=4)
         result = comparator.make_file(fromlines=fromlines, tolines=tolines,
                                       fromdesc='Current report', todesc='Clean copy on Gdoc', context=True, numlines=1)
-        out.write(result)
-        out.write('\n')
+        result += '\n'
+        out.write(result.encode('UTF-8'))

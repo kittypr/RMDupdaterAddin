@@ -13,14 +13,14 @@ def check_token():  # left for future functionality
 
 def write_changes_file(changes_string, filename):
     filename += '.changes'
-    with open(filename, 'w') as changes_file:
-        changes_file.write(changes_string)
+    with open(filename, 'wb') as changes_file:
+        changes_file.write(changes_string.encode('UTF-8'))
 
 
 def write_tchanges_file(tchanges_string, filename):
     filename += '.tchanges'
-    with open(filename, 'w') as tchanges_file:
-        tchanges_file.write(tchanges_string)
+    with open(filename, 'wb') as tchanges_file:
+        tchanges_file.write(tchanges_string.encode('UTF-8'))
 
 
 def main(input_echo_md, gdoc_id, filename, fair, warnings=False):

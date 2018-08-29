@@ -141,7 +141,7 @@ class MdExtractor:
                     self.add_content(' ')
                 elif dictionary['t'] == 'LineBreak':
                     self.add_content('\n')
-            if dictionary['t'] == 'Para':
+            if dictionary['t'] == 'Para' or dictionary['t'] == 'Plain':
                 if cell_content:
                     self.add_content('\n')
                 else:
