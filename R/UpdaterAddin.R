@@ -92,7 +92,7 @@ Compare <- function(echo.md.path, fair.id, name, fair){
 #' @param contents Character vector, content to search in
 #' @param from Character vector, regular expression, that will be replaced
 #' @param to Character vector, that will be replacement
-#' @returns List with new content and number of changes.
+#' @return List with new content and number of changes.
 PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
   matches <- gregexpr(from, contents)
 

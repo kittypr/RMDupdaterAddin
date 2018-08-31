@@ -2,6 +2,11 @@ library(rstudioapi)
 library(shiny)
 
 #' Shiny server.
+#'
+#' @param input A shiny input
+#' @param output A shiny output
+#' @param session A shiny session
+#' @return -
 server <- function(input, output, session) {
   my.changes <- NULL
   my.text.changes <- NULL
@@ -29,6 +34,8 @@ server <- function(input, output, session) {
 
 
   #' Gets information about cerrunt project and current opened .rmd file.
+  #'
+  #' @return -
   GetInformation <- function(){
     # Extracts report name
     current.report <<- rstudioapi::getActiveDocumentContext()
@@ -317,15 +324,15 @@ server <- function(input, output, session) {
       message("Draft info was found. Comparison process . . .")
       echo.true.report <- Echo(content=current.report$contents)
       answer <- CopyAndCompare(echo.true.report, fair.id, name)
-      if (answer[1] == "OUTDATED BLOCKS FOUNDED"){
-        message("Changes detected. Please use 'Find next' button to see outdated blocks.")
+      if (answer[1] == "OUTDATED BLOCKS WERE FOUNDED"){
+        message("Changes detected. Please use 'Find next', 'Find text next' buttons to see outdated blocks.")
         message("You can ignore changes and use 'Force update' button.")
         html.name <- paste0(name, "_rmdupd.html")
         if (file.exists(html.name)){
           output$diff <- shiny::renderUI(expr=HTML(readLines(html.name, encoding="UTF-8")))
         }
       }
-      else if (answer[1] == "UP TO DATE"){
+      else if (answer[1] == "ALL IS UP TO DATE"){
         message("RMDupdater didn't detect any changes.")
         Update(draft.id, odt.report)
         shiny::stopApp()
