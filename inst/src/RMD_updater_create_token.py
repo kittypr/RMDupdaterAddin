@@ -8,6 +8,10 @@ SCOPES = ['https://www.googleapis.com/auth/documents']
 
 
 def create():
+    """Checks token existence, creates if it does not exist.
+
+    :return: -
+    """
     store = oauth_file.Storage('token.json')
     creds = store.get()
     path_to_script = os.path.dirname(os.path.abspath(__file__))

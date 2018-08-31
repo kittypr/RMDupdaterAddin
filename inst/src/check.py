@@ -15,6 +15,13 @@ SCRIPT_ID = 'MfUCDEAFYCuUxb_9IPU7Cho8zoCCdfz7A'
 
 def run_comparison(function_name, parameters):  # left for future functionality
     """Calls the Apps Script API.
+
+    :param function_name: function name that will be called in google apps script.
+    :param parameters: function's parameters.
+    :return: if succeed:
+                         result: list with result of running apps scripts funtion.
+             if failed:
+                        None
     """
     store = oauth_file.Storage('token.json')
     creds = store.get()
@@ -41,6 +48,12 @@ def run_comparison(function_name, parameters):  # left for future functionality
 
 
 def run_local_comparison(tables, fair_tables):
+    """Compares two tuples of tuples which represent tables.
+
+    :param tables: tables from current reports.
+    :param fair_tables: tables from fair copy from gdoc.
+    :return: result: list of indexes in which difference was found.
+    """
     result = list()
     additional = None
     if len(tables) > len(fair_tables):
@@ -57,7 +70,13 @@ def run_local_comparison(tables, fair_tables):
 
 
 def run_local_text_comparison(text, fair_text):
-    # find deleted and new blocks
+    """Finds deleted and new blocks.
+
+    :param text: text blocks from current report.
+    :param fair_text: text blocks from fair copy from gdoc.
+    :return: {deleted: tuple of deleted blocks, added: tuple of new blocks},
+             changed = list of indexes in which difference was found.
+    """
     changed = list()
     current = frozenset(text)
     actual = frozenset(fair_text)
@@ -72,7 +91,13 @@ def run_local_text_comparison(text, fair_text):
 
 
 def create_diff(fromlines, tolines, filename):
-    # files diff with context
+    """Creates diff file.
+
+    :param fromlines: current blocks.
+    :param tolines: fair copy's blocks.
+    :param filename: unique prefix.
+    :return: -
+    """
     html_output = filename + '_rmdupd.html'
     with open(html_output, 'wb') as out:
         comparator = difflib.HtmlDiff(tabsize=4)

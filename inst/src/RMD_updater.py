@@ -7,23 +7,50 @@ import mdparse
 
 
 def check_token():  # left for future functionality
+    """Runs python script that creates token for google script API with documents scopes."""
     command = 'RMD_updater_create_token.py'
     subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def write_changes_file(changes_string, filename):
+    """Writting *.tchanges file.
+
+    *.changes file - file with special format that maintained by RMDupdaterAddin.
+
+    :param changes_string: string in changes format.
+    :param filename: unique prefix to file.
+    :return: -
+    """
     filename += '.changes'
     with open(filename, 'wb') as changes_file:
         changes_file.write(changes_string.encode('UTF-8'))
 
 
 def write_tchanges_file(tchanges_string, filename):
+    """Writting *.tchanges file.
+
+    *.tchanges file - file with special format that maintained by RMDupdaterAddin.
+
+    :param tchanges_string: string in tchanges format.
+    :param filename: unique prefix to file.
+    :return: -
+    """
     filename += '.tchanges'
     with open(filename, 'wb') as tchanges_file:
         tchanges_file.write(tchanges_string.encode('UTF-8'))
 
 
 def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
+    """Starts the comparing process.
+
+    :param input_echo_md: string, path to .md document.
+    :param gdoc_id: string, goodle document id.
+    :param filename: string, unique prefix to all files.
+    :param fair: string. path to downloaded clean copy of report.
+    :param warnings: logical, indicates showing of additional information,
+                     muted for correct protocol with RMDupdaterAddin.
+    :return: -
+    """
     extractor = mdparse.MdExtractor(warnings)
     tables, text, plain_text = extractor.parse(input_echo_md)
     fair_extractor = mdparse.MdExtractor(False)
@@ -32,7 +59,7 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
     check.create_diff(plain_text, fair_plain_text, filename)
 
     # creating *.tchanges file
-    _, changed = check.run_local_text_comparison(plain_text, fair_plain_text)
+    changes, changed = check.run_local_text_comparison(plain_text, fair_plain_text)
     tchanges_string = ''
     if len(changed) > 0:
         for change in changed:
@@ -46,11 +73,11 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
     # creating *.changes file
     result = check.run_local_comparison(tables, fair_tables)
     changes_string = ''
-    if len(result) == 0:
+    if len(result) == 0 and len(changes['added']) == 0 and len(changed) == 0:
         write_changes_file(changes_string, filename)
-        print('UP TO DATE')
+        print('ALL IS UP TO DATE')
     else:
-        print('OUTDATED BLOCKS FOUNDED')
+        print('OUTDATED BLOCKS WERE FOUNDED')
 
     for index in tables.keys():
         if index[1] in result:

@@ -8,10 +8,10 @@ library(yaml)
 
 #' Finds subvector.
 #'
-#' @param pattern Any type subvector to look for
+#' @param pattern Any type vector - subvector to look for
 #' @param original Any type vector to search in
 #' @param comparator Function that compares two elements
-#' @return Vector with start indexes of entries of subvector, if pattern was founded
+#' @return Number Vector with start indexes of entries of subvector, if pattern was founded
 #'         Otherwise, zero length vector.
 #'
 #' @examples
@@ -41,10 +41,10 @@ Find <- function(pattern, original, comparator = function(a,b){return(a==b)}){
 
 #' Uploads knitted report in two copies on Gdrive and write Gdoc ids to sync_report.sh.
 #'
-#' @param odt.report Character, knitted report path.
-#' @param report.name Character, fair copy name on Gdrive
-#' @param report.name.draft Character, draft copy name on Gdrive
-#' @param sync.path Character, path to sync_report.sh file
+#' @param odt.report Character vector, knitted report path.
+#' @param report.name Character vector, fair copy name on Gdrive
+#' @param report.name.draft Character vector, draft copy name on Gdrive
+#' @param sync.path Character vector, path to sync_report.sh file
 #' @return -
 Upload <- function(odt.report, report.name, report.name.draft, sync.path){
   result <- googledrive::drive_upload(odt.report, name=report.name, type="document")
@@ -62,8 +62,8 @@ Upload <- function(odt.report, report.name, report.name.draft, sync.path){
 
 #' Updates draft copy on Gdrive.
 #'
-#' @param odt.report Knitted report
-#' @param draft.id Draft copy Gdoc id
+#' @param odt.report Character vector, path to knitted report
+#' @param draft.id Character vector, draft copy Gdoc id
 #' @return -
 Update <- function(draft.id, odt.report){
   choice <- menu(c("Yes"), title="Do you want update draft?")
@@ -76,11 +76,11 @@ Update <- function(draft.id, odt.report){
 
 #' Calls for comparing python script.
 #'
-#' @param echo.md.path Document with .md extension that was knitted with echo option
-#' @param fair.id Fair copy Gdoc id
-#' @param name The name of current .rmd document
-#' @param fair Downloaded from Gdrive fair copy with .odt extension
-#' @return Python script's answer
+#' @param echo.md.path Character vector, path to document with .md extension that was knitted with echo option
+#' @param fair.id Character vector, fair copy Gdoc id
+#' @param name Character vector, the name of current .rmd document
+#' @param fair Character vector, path to downloaded from Gdrive fair copy with .odt extension
+#' @return Character vector, python script's answer
 Compare <- function(echo.md.path, fair.id, name, fair){
   path <- system.file("src", "RMD_updater.py", package="RMDupdaterAddin", mustWork=TRUE)
   answer <- shell(paste0(path, " ", echo.md.path, " ", fair.id, " ", name, " ", fair, " "), intern=TRUE) # gets answer from python
@@ -89,9 +89,9 @@ Compare <- function(echo.md.path, fair.id, name, fair){
 
 #' Finds patternt in content and replace it.
 #'
-#' @param contents Content to search in
-#' @param from Regular expression, that will be replaced
-#' @param to String that will be replacement
+#' @param contents Character vector, content to search in
+#' @param from Character vector, regular expression, that will be replaced
+#' @param to Character vector, that will be replacement
 #' @returns List with new content and number of changes.
 PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
   matches <- gregexpr(from, contents)
@@ -112,8 +112,8 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
 
 #' Creates copy of current report's content with echo option.
 #'
-#' @param content Current report content
-#' @return New content
+#' @param content Character vector, current report content
+#' @return Character vector, new content
 Echo <- function(content){
   ref.result <- PerformRefactor(content, from="echo\\s*=\\s*FALSE", to="echo = TRUE")
   # return as character vector
@@ -124,10 +124,10 @@ Echo <- function(content){
 
 #' Creates copy of current report with echo option, knits it to .md file, calls comparation function.
 #'
-#' @param echo.true.report Character vector with current report content copy with echo option
-#' @param fair.id Fair copy Gdoc id
-#' @param name The name of current .rmd document
-#' @return Comparation function's answer
+#' @param echo.true.report Character vector, with current report content copy with echo option
+#' @param fair.id Character vector, fair copy Gdoc id
+#' @param name Character vector, the name of current .rmd document
+#' @return Character vector, function's answer
 CopyAndCompare <- function(echo.true.report, fair.id, name){
   result <- Ignore()
   if ( ! result){
@@ -156,8 +156,8 @@ CopyAndCompare <- function(echo.true.report, fair.id, name){
 
 #' Extracts title from YAML information in current report.
 #'
-#' @param content Current report content
-#' @return Extracted title string or
+#' @param content Character vector, current report content
+#' @return Character vector, extracted title or
 #'         NULL if failed
 ExtractTitle <- function(content){
   # finds YAML edges
@@ -175,8 +175,8 @@ ExtractTitle <- function(content){
 
 #' Extracts name of current report.
 #'
-#' @param path Current report path
-#' @return Extracted report name
+#' @param path Character vector, current report path
+#' @return Character vector, extracted report name
 ExtractName <- function(path){
   name.ext <- basename(path)
   name <- gsub("\\..*$", "", name.ext)
