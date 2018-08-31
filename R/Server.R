@@ -32,6 +32,8 @@ server <- function(input, output, session) {
   sync.info <- NULL
   name <- NULL
 
+  was.found <- FALSE
+  information..extracted <- FALSE
 
   #' Gets information about cerrunt project and current opened .rmd file.
   #'
@@ -59,6 +61,13 @@ server <- function(input, output, session) {
     # looks for report information in sync_reports.sh
     regular.exp <- paste0("^# ", report.name)
     result <<- grep(regular.exp, sync.info)
+    if (length(result) > 0){
+      was.found <<- TRUE
+      fair.string <- sync.info[result[1]]
+      fair.id <<- strsplit(fair.string, split="/", fixed=TRUE)[[c(1,6)]]
+      draft.string <- sync.info[result[1] + 1]
+      draft.id <<- strsplit(draft.string, split=" ", fixed=TRUE)[[c(1,3)]]
+    }
 
     # building path to odt
     find.odt.report <<- gsub("\\.Rmd$", ".odt", report.path) # CHANGE BEFORE RELEASE to .rmd
@@ -76,6 +85,7 @@ server <- function(input, output, session) {
         shiny::stopApp()
       }
     }
+    information..extracted <<- TRUE
     return(1)
   }
 
@@ -307,7 +317,7 @@ server <- function(input, output, session) {
       shiny::stopApp()
     }
     else if (info == 2){}
-    else if (length(result) == 0){  # report info wasnt found
+    else if ( ! was.found){  # report info wasnt found
       message(paste0("Information associated with ", report.name, " was not found in sync_reports.sh."))
       choice <- menu(c("Yes"), title="Do you want create new fair and draft?")
       if (choice == 1){
@@ -317,10 +327,6 @@ server <- function(input, output, session) {
       shiny::stopApp()
     }
     else {
-      fair.string <- sync.info[result[1]]
-      fair.id <<- strsplit(fair.string, split="/", fixed=TRUE)[[c(1,6)]]
-      draft.string <- sync.info[result[1] + 1]
-      draft.id <<- strsplit(draft.string, split=" ", fixed=TRUE)[[c(1,3)]]
       message("Draft info was found. Comparison process . . .")
       echo.true.report <- Echo(content=current.report$contents)
       answer <- CopyAndCompare(echo.true.report, fair.id, name)
@@ -354,7 +360,7 @@ server <- function(input, output, session) {
       }
       else if (info == 2){}
       else {
-        if (length(result) == 0){
+        if ( ! was.found){
           # report info wasnt found
           message("Files were not found in sync_reports.sh.")
           message("Use 'Update' button.")
@@ -426,6 +432,30 @@ server <- function(input, output, session) {
       text <- ParseTchanges()
       output$changed <- shiny::renderText(expr=text)
     }
+  })
+
+  shiny::observeEvent(input$ofc, {
+    if (! information..extracted){
+      GetInformation()
+    }
+    if (is.null(fair.id)){
+      message("Iformation was not founded.")
+      return()
+    }
+    fair.link <- paste0("https://docs.google.com/document/d/", fair.id, "/")
+    browseURL(fair.link)
+  })
+
+  shiny::observeEvent(input$odc, {
+    if (! information..extracted){
+      GetInformation()
+    }
+    if (is.null(draft.id)){
+      message("Iformation was not founded.")
+      return()
+    }
+    draft.link <- paste0("https://docs.google.com/document/d/", draft.id, "/")
+    browseURL(draft.link)
   })
 
   shiny::observeEvent(input$odiff, {

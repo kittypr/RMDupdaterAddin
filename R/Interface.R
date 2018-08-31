@@ -17,6 +17,11 @@ interface <- shiny::fluidPage(
                      ),
                      shiny::fluidRow(
                        miniUI::miniButtonBlock(
+                         shiny::actionButton("ofc", "Open fair", icon=shiny::icon("book")),
+                         shiny::actionButton("odc", "Open draft", icon=shiny::icon("file")))
+                     ),
+                     shiny::fluidRow(
+                       miniUI::miniButtonBlock(
                          shiny::actionButton("prv", "Find prev", icon=shiny::icon("arrow-left")),
                          shiny::actionButton("nxt", "Find next", icon=shiny::icon("arrow-right")))
                      ),
