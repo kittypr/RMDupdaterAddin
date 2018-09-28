@@ -381,12 +381,11 @@ server <- function(input, output, session) {
   shiny::observeEvent(input$prv, {
     if (outer.iter == 1 | outer.iter == 2){
       message("- - - - - YOU ARE IN THE BEGINNING OF THE FILE. - - - - -")
+      outer.iter <<- 3
     }
-    else{
-      outer.iter <<- outer.iter - 2
-      iter <<- memory[outer.iter]
-      ParseChanges()
-    }
+    outer.iter <<- outer.iter - 2
+    iter <<- memory[outer.iter]
+    ParseChanges()
   })
 
   shiny::observeEvent(input$nxt, {
@@ -410,7 +409,7 @@ server <- function(input, output, session) {
   shiny::observeEvent(input$tprv, {
     if (text.outer.iter == 1 | text.outer.iter == 2){
       message("- - - - - YOU ARE IN THE BEGINNING OF THE FILE. - - - - -")
-      return()
+      text.outer.iter <<- 3
     }
     text.outer.iter <<- text.outer.iter - 2
     text.iter <<-text.memory[text.outer.iter]
