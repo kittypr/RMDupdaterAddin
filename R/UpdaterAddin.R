@@ -83,7 +83,11 @@ Update <- function(draft.id, odt.report){
 #' @return Character vector, python script's answer
 Compare <- function(echo.md.path, fair.id, name, fair){
   path <- system.file("src", "RMD_updater.py", package="RMDupdaterAddin", mustWork=TRUE)
-  answer <- shell(paste0(path, " ", echo.md.path, " ", fair.id, " ", name, " ", fair, " "), intern=TRUE) # gets answer from python
+  answer <- NULL
+  tryCatch(
+    {answer <<- system(paste0("python3 ",path, " ", echo.md.path, " ", fair.id, " ", name, " ", fair, " "), intern=TRUE)},
+     error = function(e) {answer <<- system(paste0("python ",path, " ", echo.md.path, " ", fair.id, " ", name, " ", fair, " "), intern=TRUE)})
+  answer
 }
 
 
