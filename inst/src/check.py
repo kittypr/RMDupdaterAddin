@@ -52,20 +52,14 @@ def run_local_comparison(tables, fair_tables):
 
     :param tables: tables from current reports.
     :param fair_tables: tables from fair copy from gdoc.
-    :return: result: list of indexes in which difference was found.
+    :return: result: list of tuples of context and ancestor that refer to tables that differs from tables in fair copy.
     """
     result = list()
-    additional = None
+    for current, fair in zip(tables, fair_tables):
+        if current[0] != fair[0]:
+            result.append(current[1])
     if len(tables) > len(fair_tables):
-        additional = [i for i in range(len(fair_tables), len(tables))]
-    for key, fair_key in zip(tables.keys(), fair_tables.keys()):
-        table = tables[key]
-        fair_table = fair_tables[fair_key]
-        same = (table == fair_table)
-        if not same:
-            result.append(key[1])
-    if additional:
-        result.extend(additional)
+        result.extend([current[1] for current in tables[len(fair_tables):]])
     return result
 
 
@@ -78,15 +72,16 @@ def run_local_text_comparison(text, fair_text):
              changed = list of indexes in which difference was found.
     """
     changed = list()
-    current = frozenset(text)
-    actual = frozenset(fair_text)
+    current_list = [item[0] for item in text]
+    current = frozenset(current_list)
+    actual = frozenset([item[0] for item in fair_text])
     difference = actual ^ current
     deleted = current & difference
     added = actual & difference
     deleted = tuple(deleted)
     added = tuple(added)
     for deleted_text in deleted:
-        changed.append(text.index(deleted_text))
+        changed.append(current_list.index(deleted_text))
     return {'deleted': deleted, 'added': added}, changed
 
 
@@ -98,6 +93,8 @@ def create_diff(fromlines, tolines, filename):
     :param filename: unique prefix.
     :return: -
     """
+    fromlines = list([text[0] for text in fromlines])
+    tolines = list([text[0] for text in tolines])
     html_output = filename + '_rmdupd.html'
     with open(html_output, 'wb') as out:
         comparator = difflib.HtmlDiff(tabsize=4)

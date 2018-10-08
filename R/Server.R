@@ -1,5 +1,6 @@
 library(rstudioapi)
 library(shiny)
+library(rjson)
 
 #' Shiny server.
 #'
@@ -10,6 +11,8 @@ library(shiny)
 server <- function(input, output, session) {
   my.changes <- NULL
   my.text.changes <- NULL
+  json.tables.changes <- NULL
+  json.text.changes <- NULL
 
   iter <- 1
   outer.iter <- 1
@@ -307,6 +310,11 @@ server <- function(input, output, session) {
     else{
       my.changes <<- readLines(log.file, encoding="UTF-8")
       my.text.changes <<- readLines(log.text.file, encoding="UTF-8")
+      json.text.changes <<- rjson::fromJSON(file=paste0(name, "_text_changes.json"))
+      json.tables.changes <<- rjson::fromJSON(file=paste0(name, "_tables_changes.json"))
+      str(json.tables.changes)
+      print("\n")
+      str(json.text.changes)
       return(1)
     }
   }

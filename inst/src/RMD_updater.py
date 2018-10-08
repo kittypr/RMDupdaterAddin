@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import subprocess
 
 import check
@@ -52,15 +53,18 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
     :return: -
     """
     extractor = mdparse.MdExtractor(warnings)
-    tables, text, plain_text = extractor.parse(input_echo_md)
+    tables, text = extractor.parse(input_echo_md)
     fair_extractor = mdparse.MdExtractor(False)
-    fair_tables, null, fair_plain_text = fair_extractor.parse(fair)
+    fair_tables, fair_text = fair_extractor.parse(fair)
     # creating html diff table.
-    check.create_diff(plain_text, fair_plain_text, filename)
+    check.create_diff(text, fair_text, filename)
 
     # creating *.tchanges file
-    changes, changed = check.run_local_text_comparison(plain_text, fair_plain_text)
+    changes, changed = check.run_local_text_comparison(text, fair_text)
     tchanges_string = ''
+    text_json = {'text': list(),
+                 'context': list(),
+                 'ancestor': list()}
     if len(changed) > 0:
         for change in changed:
             if text[change][2] != '':
@@ -68,6 +72,9 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
                                    '\n~~ TEXT\n' + text[change][0] + '\n~~ END\n'
             else:
                 tchanges_string += '~~ CONTEXT\n\n~~ CHANGED BLOCK\n\n~~ TEXT\n' + text[change][0] + '\n~~ END\n'
+            text_json['text'].append(text[change][0])
+            text_json['context'].append(text[change][1])
+            text_json['ancestor'].append(text[change][2])
     write_tchanges_file(tchanges_string, filename)
 
     # creating *.changes file
@@ -79,11 +86,17 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
     else:
         print('OUTDATED BLOCKS WERE FOUNDED')
 
-    for index in tables.keys():
-        if index[1] in result:
-            changes_string += '~~ CONTEXT\n' + index[0][0] + '\n~~ CHANGED BLOCK\n' + index[0][1] +\
-                                          '\n~~ END\n'
+    for different in result:
+        changes_string += '~~ CONTEXT\n' + different[0] + '\n~~ CHANGED BLOCK\n' + different[1] + '\n~~ END\n'
+    tables_json = {'context': [different[0] for different in result],
+                   'ancestor': [different[1] for different in result]}
     write_changes_file(changes_string, filename)
+
+    textj_filename = filename + '_text_changes.json'
+    tablesj_filename = filename + '_tables_changes.json'
+    with open(textj_filename, 'w') as text_file, open(tablesj_filename, 'w') as tables_file:
+        json.dump(text_json, text_file)
+        json.dump(tables_json, tables_file)
 
 
 if __name__ == '__main__':
