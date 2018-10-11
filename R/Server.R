@@ -9,18 +9,11 @@ library(rjson)
 #' @param session A shiny session
 #' @return -
 server <- function(input, output, session) {
-#  my.changes <- NULL
-#  my.text.changes <- NULL
   json.tables.changes <- NULL
   json.text.changes <- NULL
 
   iter <- 1
-#  outer.iter <- 1
   text.iter <- 1
-#  text.outer.iter <- 1
-
-#  text.memory <- c()
-#  memory <- c()
 
   draft.id <- NULL
   fair.id <- NULL
@@ -104,8 +97,7 @@ server <- function(input, output, session) {
                                                               rstudioapi::document_position(end.line, end.length+1)), id=NULL)
   }
 
-
-  #' Parses *.changes file: reads it, founds blocks in current report and highlights them.
+  #' Parses tables changes: founds blocks in current report and highlights them.
   #'
   #' @return -
   ParseChanges <- function(){
@@ -159,7 +151,7 @@ server <- function(input, output, session) {
     iter <<- iter + 1
   }
 
-  #' Parses *.tchanges file: reads it, founds blocks in current report and highlights them.
+  #' Parses text changes: founds blocks in current report and highlights them.
   #'
   #' @return -
   ParseTchanges <- function(){
@@ -229,22 +221,20 @@ server <- function(input, output, session) {
     raw.text
   }
 
-  #' Founds and loads *.changes and \*.tchanges files.
+  #' Founds and loads text json and tables json files.
   #'
   #' @return -
   ReadChangesFiles <- function(){
-    log.file <- paste0(name, ".changes")
-    log.text.file <- paste0(name, ".tchanges")
+    log.file <- paste0(name, "_tables_changes.json")
+    log.text.file <- paste0(name, "_text_changes.json")
     if ( ! file.exists(log.file) | ! file.exists(log.text.file)){
-      message("Can't find *.changes/*.tchanges file.")
+      message("Can't find json objects files.")
       message("Use 'Update' button to create it.")
       return(NULL)
     }
     else{
-      #my.changes <<- readLines(log.file, encoding="UTF-8")
-      #my.text.changes <<- readLines(log.text.file, encoding="UTF-8")
-      json.text.changes <<- rjson::fromJSON(file=paste0(name, "_text_changes.json"))
-      json.tables.changes <<- rjson::fromJSON(file=paste0(name, "_tables_changes.json"))
+      json.text.changes <<- rjson::fromJSON(file=log.text.file)
+      json.tables.changes <<- rjson::fromJSON(file=log.file)
       return(1)
     }
   }
@@ -336,7 +326,7 @@ server <- function(input, output, session) {
       message("- - - - - NO CHANGES DETECTED - - - - -")
     }
     else if (iter > length(json.tables.changes$ancestor)){
-      message("- - - - - END OF CHANGES FILE. USE 'FIND PREV' OR 'DONE' - - - - -")
+      message("- - - - - END OF TABLES CHANGES. USE 'FIND PREV' OR 'DONE' - - - - -")
     }
     else {
       ParseChanges()
@@ -361,7 +351,7 @@ server <- function(input, output, session) {
       message("- - - - - NO CHANGES DETECTED - - - - -")
     }
     else if (text.iter > length(json.text.changes$text)){
-      message("- - - - - END OF TCHANGES FILE. USE 'FIND PREV' OR 'DONE' - - - - -")
+      message("- - - - - END OF TEXT CHANGES. USE 'FIND PREV' OR 'DONE' - - - - -")
     }
     else {
       text <- ParseTchanges()

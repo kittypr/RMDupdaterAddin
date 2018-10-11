@@ -27,13 +27,13 @@ Gets information about cerrunt project and current opened .rmd file.
 Selects part of the current report.
 
 -
-Parses *.changes file: reads it, founds blocks in current report and highlights them.
+Parses tables changes: founds blocks in current report and highlights them.
 
 -
-Parses *.tchanges file: reads it, founds blocks in current report and highlights them.
+Parses text changes: founds blocks in current report and highlights them.
 
 -
-Founds and loads *.changes and \*.tchanges files.
+Founds and loads text json and tables json files.
 
 -
 }

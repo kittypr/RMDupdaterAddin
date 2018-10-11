@@ -203,8 +203,7 @@ ExtractName <- function(path){
 #' @return  TRUE if success
 Ignore <- function(){
   gitignore <- ".gitignore"
-  extension <- ".changes"
-  textension <- ".tchanges"
+  log.files <- "*_changes.json"
   files <- "*_rmdupd.*"
   if (file.exists(gitignore)){
     content <- readLines(gitignore)
@@ -214,15 +213,10 @@ Ignore <- function(){
       write("", file=gitfile, append=TRUE)
       write(files, file=gitfile, append=TRUE)
     }
-    result <- grep(extension, content, fixed=TRUE)
+    result <- grep(log.files, content, fixed=TRUE)
     if (length(result) == 0){
       write("", file=gitfile, append=TRUE)
-      write(extension, file=gitfile, append=TRUE)
-    }
-    result <- grep(textension, content, fixed=TRUE)
-    if (length(result) == 0){
-      write("", file=gitfile, append=TRUE)
-      write(textension, file=gitfile, append=TRUE)
+      write(log.files, file=gitfile, append=TRUE)
     }
     close(gitfile)
     return(TRUE)
