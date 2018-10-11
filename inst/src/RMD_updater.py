@@ -13,34 +13,6 @@ def check_token():  # left for future functionality
     subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
-def write_changes_file(changes_string, filename):
-    """Writting *.tchanges file.
-
-    *.changes file - file with special format that maintained by RMDupdaterAddin.
-
-    :param changes_string: string in changes format.
-    :param filename: unique prefix to file.
-    :return: -
-    """
-    filename += '.changes'
-    with open(filename, 'wb') as changes_file:
-        changes_file.write(changes_string.encode('UTF-8'))
-
-
-def write_tchanges_file(tchanges_string, filename):
-    """Writting *.tchanges file.
-
-    *.tchanges file - file with special format that maintained by RMDupdaterAddin.
-
-    :param tchanges_string: string in tchanges format.
-    :param filename: unique prefix to file.
-    :return: -
-    """
-    filename += '.tchanges'
-    with open(filename, 'wb') as tchanges_file:
-        tchanges_file.write(tchanges_string.encode('UTF-8'))
-
-
 def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
     """Starts the comparing process.
 
@@ -59,38 +31,29 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
     # creating html diff table.
     check.create_diff(text, fair_text, filename)
 
-    # creating *.tchanges file
+    # creating text changes json object
     changes, changed = check.run_local_text_comparison(text, fair_text)
-    tchanges_string = ''
     text_json = {'text': list(),
                  'context': list(),
                  'ancestor': list()}
     if len(changed) > 0:
         for change in changed:
-            if text[change][2] != '':
-                tchanges_string += '~~ CONTEXT\n' + text[change][1] + '\n~~ CHANGED BLOCK\n' + text[change][2] + \
-                                   '\n~~ TEXT\n' + text[change][0] + '\n~~ END\n'
-            else:
-                tchanges_string += '~~ CONTEXT\n\n~~ CHANGED BLOCK\n\n~~ TEXT\n' + text[change][0] + '\n~~ END\n'
             text_json['text'].append(text[change][0])
             text_json['context'].append(text[change][1])
             text_json['ancestor'].append(text[change][2])
-    write_tchanges_file(tchanges_string, filename)
 
-    # creating *.changes file
+    # creating tables changes json object
     result = check.run_local_comparison(tables, fair_tables)
-    changes_string = ''
     if len(result) == 0 and len(changes['added']) == 0 and len(changed) == 0:
-        write_changes_file(changes_string, filename)
         print('ALL IS UP TO DATE')
     else:
         print('OUTDATED BLOCKS WERE FOUNDED')
 
+    tables_json = {'context': list(),
+                   'ancestor': list()}
     for different in result:
-        changes_string += '~~ CONTEXT\n' + different[0] + '\n~~ CHANGED BLOCK\n' + different[1] + '\n~~ END\n'
-    tables_json = {'context': [different[0] for different in result],
-                   'ancestor': [different[1] for different in result]}
-    write_changes_file(changes_string, filename)
+        tables_json['context'].append(different[0])
+        tables_json['ancestor'].append(different[1])
 
     textj_filename = filename + '_text_changes.json'
     tablesj_filename = filename + '_tables_changes.json'
@@ -102,9 +65,9 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='RMDupdater checks tables from given MD doc and Gdoc, '
                                                  'finds differences, logs code that generates outdated information.')
-    parser.add_argument('input', help='*.md file generated from *.rmd with "echo=TRUE"', action='store')
+    parser.add_argument('input', help='*.md file generated from *.rmd with "echo=TRUE".', action='store')
     parser.add_argument('gdoc_id', help='Gdoc id.', action='store')  # left for future functionality
-    parser.add_argument('name', help='Name for unique *.changes filename', action='store')
+    parser.add_argument('name', help='Name for unique json filenames.', action='store')
     parser.add_argument('fair', help='Actual fair version from gdoc.', action='store')
     args = parser.parse_args()
 

@@ -102,3 +102,8 @@ def create_diff(fromlines, tolines, filename):
                                       fromdesc='Current report', todesc='Clean copy on Gdoc', context=True, numlines=1)
         result += '\n'
         out.write(result.encode('UTF-8'))
+
+
+
+
+
