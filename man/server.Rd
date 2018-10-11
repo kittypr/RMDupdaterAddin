@@ -27,16 +27,6 @@ Gets information about cerrunt project and current opened .rmd file.
 Selects part of the current report.
 
 -
-Reads *.changes file
-
-A list - list with 2 character vectors - pattern to select and pattern to select with context
-                 and 1 number length of context
-Reads *.tchanges file
-
-A list - list with 3 character vectors - pattern to select
-                                                 pattern to select with context
-                                                 raw text to select
-                 and 1 number - length of context
 Parses *.changes file: reads it, founds blocks in current report and highlights them.
 
 -

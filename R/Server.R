@@ -9,18 +9,18 @@ library(rjson)
 #' @param session A shiny session
 #' @return -
 server <- function(input, output, session) {
-  my.changes <- NULL
-  my.text.changes <- NULL
+#  my.changes <- NULL
+#  my.text.changes <- NULL
   json.tables.changes <- NULL
   json.text.changes <- NULL
 
   iter <- 1
-  outer.iter <- 1
+#  outer.iter <- 1
   text.iter <- 1
-  text.outer.iter <- 1
+#  text.outer.iter <- 1
 
-  text.memory <- c()
-  memory <- c()
+#  text.memory <- c()
+#  memory <- c()
 
   draft.id <- NULL
   fair.id <- NULL
@@ -104,79 +104,6 @@ server <- function(input, output, session) {
                                                               rstudioapi::document_position(end.line, end.length+1)), id=NULL)
   }
 
-  #' Reads *.changes file
-  #'
-  #' @return A list - list with 2 character vectors - pattern to select and pattern to select with context
-  #'                  and 1 number length of context
-  ReadChanges <- function(){
-    context.length <- 0
-    pattern <- c("")
-    res.pattern <- c("")
-    memory[outer.iter] <<- iter
-    outer.iter <<- outer.iter + 1
-    iter <<- iter + 1
-    inner.iter <- 0
-    while (my.changes[iter] != "~~ CHANGED BLOCK"){
-      inner.iter <- inner.iter + 1
-      pattern[inner.iter] <- my.changes[iter]
-      iter <<- iter + 1
-    }
-    iter <<- iter + 1
-    context.length <- inner.iter
-    if (context.length == 1 & pattern[1] == ""){
-      context.length <<-0
-      inner.iter <<-0
-    }
-    while (my.changes[iter] != "~~ END"){
-      inner.iter <- inner.iter + 1
-      pattern[inner.iter] <- my.changes[iter]
-      res.pattern[inner.iter - context.length] <- my.changes[iter]
-      iter <<- iter + 1
-    }
-    list(pattern=pattern, res.pattern=res.pattern, context.length=context.length)
-  }
-
-  #' Reads *.tchanges file
-  #'
-  #' @return A list - list with 3 character vectors - pattern to select
-  #'                                                  pattern to select with context
-  #'                                                  raw text to select
-  #'                  and 1 number - length of context
-  ReadTchanges <- function(){
-    context.length <- 0
-    pattern <- c("")
-    res.pattern <- c("")
-    raw.text <- c("")
-    text.memory[text.outer.iter] <<- text.iter
-    text.outer.iter <<- text.outer.iter +1
-    text.iter <<- text.iter + 1
-    inner.iter <- 0
-    while (my.text.changes[text.iter] != "~~ CHANGED BLOCK"){
-      inner.iter <- inner.iter + 1
-      pattern[inner.iter] <- my.text.changes[text.iter]
-      text.iter <<- text.iter + 1
-    }
-    text.iter <<- text.iter + 1
-    context.length <- inner.iter
-    if (context.length == 1 & pattern[1] == ""){
-      context.length <<-0
-      inner.iter <<-0
-    }
-    while (my.text.changes[text.iter] != "~~ TEXT"){
-      inner.iter <- inner.iter + 1
-      pattern[inner.iter] <- my.text.changes[text.iter]
-      res.pattern[inner.iter - context.length] <- my.text.changes[text.iter]
-      text.iter <<- text.iter + 1
-    }
-    text.iter <<- text.iter + 1
-    raw.text.iter <- 0
-    while (my.text.changes[text.iter] != "~~ END"){
-      raw.text.iter <- raw.text.iter + 1
-      raw.text[raw.text.iter] <- my.text.changes[text.iter]
-      text.iter <<- text.iter + 1
-    }
-    list(pattern=pattern, res.pattern=res.pattern, raw.text=raw.text, context.length=context.length)
-  }
 
   #' Parses *.changes file: reads it, founds blocks in current report and highlights them.
   #'
@@ -196,13 +123,16 @@ server <- function(input, output, session) {
     original <- shift.content$content
 
 
-    if (my.changes[iter] == "~~ CONTEXT") {
-      readed <- ReadChanges()
-      pattern <- readed$pattern
-      res.pattern <- readed$res.pattern
-      context.length <- readed$context.length
+    if (iter <= length(json.tables.changes$ancestor)) {
+      ancestor <- json.tables.changes$ancestor[iter]
+      ancestor.context <- json.tables.changes$context[iter]
+
+      pattern <- strsplit(paste0(ancestor.context, ancestor), "\n")[[1]]
+      res.pattern <- strsplit(ancestor, "\n")[[1]]
       pattern.length <- length(pattern)
       res.pattern.length <- length(res.pattern)
+      context.length <- pattern.length - res.pattern.length
+
 
       # finds exactly the same code strings in open *.rmd file
       candidate <- Find(pattern=pattern, original=original)
@@ -246,16 +176,19 @@ server <- function(input, output, session) {
     shift.content <- list(index=indexes, content=original.without.empty)
     original <- shift.content$content
 
-    if (my.text.changes[text.iter] == "~~ CONTEXT") {
-      readed <- ReadTchanges()
-      raw.text <- readed$raw.text
-      pattern <-readed$pattern
-      res.pattern <- readed$res.pattern
-      context.length <- readed$context.length
+    if (text.iter <= length(json.text.changes$text)) {
+      text <- json.text.changes$text[iter]
+      ancestor <- json.text.changes$ancestor[iter]
+      ancestor.context <- json.text.changes$context[iter]
+
+      raw.text <- strsplit(text, "\n")[[1]]
+      pattern <- strsplit(paste0(ancestor.context, ancestor), "\n")[[1]]
+      res.pattern <- strsplit(ancestor, "\n")[[1]]
 
       raw.text.length <- length(raw.text)
       pattern.length <- length(pattern)
       res.pattern.length <- length(res.pattern)
+      context.length <- pattern.length - res.pattern.length
 
       raw.pattern <- lapply(raw.text, function(x){
         x <- gsub(" ", "[^[:alnum:]]*", x)  # allows to find text even with some formatting: "hello, **world!**" = "hello, world!"
@@ -308,13 +241,10 @@ server <- function(input, output, session) {
       return(NULL)
     }
     else{
-      my.changes <<- readLines(log.file, encoding="UTF-8")
-      my.text.changes <<- readLines(log.text.file, encoding="UTF-8")
+      #my.changes <<- readLines(log.file, encoding="UTF-8")
+      #my.text.changes <<- readLines(log.text.file, encoding="UTF-8")
       json.text.changes <<- rjson::fromJSON(file=paste0(name, "_text_changes.json"))
       json.tables.changes <<- rjson::fromJSON(file=paste0(name, "_tables_changes.json"))
-      str(json.tables.changes)
-      print("\n")
-      str(json.text.changes)
       return(1)
     }
   }
@@ -387,26 +317,25 @@ server <- function(input, output, session) {
   })
 
   shiny::observeEvent(input$prv, {
-    if (outer.iter == 1 | outer.iter == 2){
+    if (iter == 1 | iter == 2){
       message("- - - - - YOU ARE IN THE BEGINNING OF THE FILE. - - - - -")
-      outer.iter <<- 3
+      iter <<- 2
     }
-    outer.iter <<- outer.iter - 2
-    iter <<- memory[outer.iter]
+    iter <<- iter - 1
     ParseChanges()
   })
 
   shiny::observeEvent(input$nxt, {
-    if (is.null(my.changes)){
+    if (is.null(json.tables.changes)){
       if (is.null(ReadChangesFiles())){
         shiny::stopApp()
         return()
       }
     }
-    if (length(my.changes) == 1){
+    if (length(json.tables.changes$ancestor) == 0){
       message("- - - - - NO CHANGES DETECTED - - - - -")
     }
-    else if (iter > length(my.changes)){
+    else if (iter > length(json.tables.changes$ancestor)){
       message("- - - - - END OF CHANGES FILE. USE 'FIND PREV' OR 'DONE' - - - - -")
     }
     else {
@@ -415,24 +344,23 @@ server <- function(input, output, session) {
   })
 
   shiny::observeEvent(input$tprv, {
-    if (text.outer.iter == 1 | text.outer.iter == 2){
+    if (text.iter == 1 | text.iter == 2){
       message("- - - - - YOU ARE IN THE BEGINNING OF THE FILE. - - - - -")
-      text.outer.iter <<- 3
+      text.iter <<- 2
     }
-    text.outer.iter <<- text.outer.iter - 2
-    text.iter <<-text.memory[text.outer.iter]
+    text.iter <<- text.iter - 1
     text <- ParseTchanges()
     output$changed <- shiny::renderText(expr=text)
   })
 
   shiny::observeEvent(input$tnxt, {
-    if (is.null(my.text.changes)){
+    if (is.null(json.text.changes)){
       ReadChangesFiles()
     }
-    if (length(my.text.changes) == 1){
+    if (length(json.text.changes$text) == 0){
       message("- - - - - NO CHANGES DETECTED - - - - -")
     }
-    else if (text.iter > length(my.text.changes)){
+    else if (text.iter > length(json.text.changes$text)){
       message("- - - - - END OF TCHANGES FILE. USE 'FIND PREV' OR 'DONE' - - - - -")
     }
     else {
