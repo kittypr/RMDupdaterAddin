@@ -151,7 +151,18 @@ CopyAndCompare <- function(echo.true.report, fair.id, name){
   writeLines(echo.true.report, con=out)
   close(con=out)
 
-  knitr::knit(input=copy, output=result)
+  answer <- NULL
+  tryCatch({
+    knitr::knit(input=copy, output=result)
+    },
+    error = function(e) {
+      message("Knitr error:")
+      message(e$message)
+      answer <<- "Error during knitting, exit application."
+    })
+  if ( ! is.null(answer)){
+    return(answer)
+  }
   answer <- Compare(echo.md.path=result, fair.id=fair.id, name=name, fair=output)
   file.remove(c(copy, result, output))
   answer
