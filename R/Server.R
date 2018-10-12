@@ -119,7 +119,7 @@ server <- function(input, output, session) {
       ancestor <- json.tables.changes$ancestor[iter]
       ancestor.context <- json.tables.changes$context[iter]
 
-      pattern <- strsplit(paste0(ancestor.context, ancestor), "\n")[[1]]
+      pattern <- strsplit(paste0(ancestor.context, "\n", ancestor), "\n")[[1]]
       res.pattern <- strsplit(ancestor, "\n")[[1]]
       pattern.length <- length(pattern)
       res.pattern.length <- length(res.pattern)
@@ -131,6 +131,7 @@ server <- function(input, output, session) {
       res.candidate <- Find(pattern=res.pattern, original=original)
 
       if (length(candidate) > 0 & ! is.null(candidate)){
+        message("founded in context")
         start.line <- shift.content$index[candidate[1]+context.length]
         end.line <- shift.content$index[candidate[1]+pattern.length-1]
         end.length <- nchar(pattern[pattern.length])+1
@@ -169,12 +170,12 @@ server <- function(input, output, session) {
     original <- shift.content$content
 
     if (text.iter <= length(json.text.changes$text)) {
-      text <- json.text.changes$text[iter]
-      ancestor <- json.text.changes$ancestor[iter]
-      ancestor.context <- json.text.changes$context[iter]
+      text <- json.text.changes$text[text.iter]
+      ancestor <- json.text.changes$ancestor[text.iter]
+      ancestor.context <- json.text.changes$context[text.iter]
 
       raw.text <- strsplit(text, "\n")[[1]]
-      pattern <- strsplit(paste0(ancestor.context, ancestor), "\n")[[1]]
+      pattern <- strsplit(paste0(ancestor.context, "\n", ancestor), "\n")[[1]]
       res.pattern <- strsplit(ancestor, "\n")[[1]]
 
       raw.text.length <- length(raw.text)
@@ -193,12 +194,14 @@ server <- function(input, output, session) {
       res.candidate <- Find(pattern=res.pattern, original=original)
 
       if (length(raw.candidate) > 0 & ! is.null(raw.candidate)){
+        message("founded raw")
         start.line <- shift.content$index[raw.candidate[1]]
         end.line <- shift.content$index[raw.candidate[1]+raw.text.length-1]
         end.length <- nchar(original[raw.candidate[1]+raw.text.length-1])+1
         Highlight(start.line, end.line, end.length)
       } else{
         if (length(candidate) > 0 & ! is.null(candidate)){
+          message("founded in context")
           start.line <- shift.content$index[candidate[1]+context.length]
           end.line <- shift.content$index[candidate[1]+pattern.length-1]
           end.length <- nchar(pattern[pattern.length])+1
@@ -334,22 +337,16 @@ server <- function(input, output, session) {
   })
 
   shiny::observeEvent(input$tprv, {
-    print("text iter:\n")
-    print(text.iter)
     if (text.iter == 1 | text.iter == 2){
       message("- - - - - YOU ARE IN THE BEGINNING OF THE FILE. - - - - -")
-      text.iter <<- 2
+      text.iter <<- 3
     }
-    text.iter <<- text.iter - 1
+    text.iter <<- text.iter - 2
     text <- ParseTchanges()
-    print("text iter:\n")
-    print(text.iter)
     output$changed <- shiny::renderText(expr=text)
   })
 
   shiny::observeEvent(input$tnxt, {
-    print("text iter:\n")
-    print(text.iter)
     if (is.null(json.text.changes)){
       ReadChangesFiles()
     }
@@ -361,8 +358,6 @@ server <- function(input, output, session) {
     }
     else {
       text <- ParseTchanges()
-      print("text iter:\n")
-      print(text.iter)
       output$changed <- shiny::renderText(expr=text)
     }
   })
