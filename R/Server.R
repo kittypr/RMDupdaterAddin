@@ -309,9 +309,9 @@ server <- function(input, output, session) {
   shiny::observeEvent(input$prv, {
     if (iter == 1 | iter == 2){
       message("- - - - - YOU ARE IN THE BEGINNING OF THE FILE. - - - - -")
-      iter <<- 2
+      iter <<- 3
     }
-    iter <<- iter - 1
+    iter <<- iter - 2
     ParseChanges()
   })
 
@@ -334,16 +334,22 @@ server <- function(input, output, session) {
   })
 
   shiny::observeEvent(input$tprv, {
+    print("text iter:\n")
+    print(text.iter)
     if (text.iter == 1 | text.iter == 2){
       message("- - - - - YOU ARE IN THE BEGINNING OF THE FILE. - - - - -")
       text.iter <<- 2
     }
     text.iter <<- text.iter - 1
     text <- ParseTchanges()
+    print("text iter:\n")
+    print(text.iter)
     output$changed <- shiny::renderText(expr=text)
   })
 
   shiny::observeEvent(input$tnxt, {
+    print("text iter:\n")
+    print(text.iter)
     if (is.null(json.text.changes)){
       ReadChangesFiles()
     }
@@ -355,6 +361,8 @@ server <- function(input, output, session) {
     }
     else {
       text <- ParseTchanges()
+      print("text iter:\n")
+      print(text.iter)
       output$changed <- shiny::renderText(expr=text)
     }
   })
