@@ -73,6 +73,12 @@ Update <- function(draft.id, odt.report){
   }
 }
 
+#' Reupload draft and fair copies on Gdrive with using existing links
+#'
+#' @param odt.report Character vector, path to knitted report
+#' @param draft.id Character vector, draft copy Gdoc id
+#' @param fair.id Character vector, fair copy Gdoc id
+#' @return -
 Reupload <- function(draft.id, fair.id, odt.report){
   choice <- menu(c("Yes"), title="Do you want reupload draft and fair copy?")
   if (choice == 1){
