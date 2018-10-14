@@ -35,7 +35,9 @@ interface <- shiny::fluidPage(
                        shiny::textOutput("changed")),
                      shiny::fluidRow(
                        miniUI::miniButtonBlock(
-                         shiny::actionButton("odiff", "Opel diff file in browser", color="green")))
+                         shiny::actionButton("odiff", "Opel diff file in browser"),
+                         shiny::actionButton("bupd", "Reupload", icon=shiny::icon("fast-forward")))
+                     )
     ),
     shiny::tabPanel( "Diff", shiny::htmlOutput("diff"))
   )
