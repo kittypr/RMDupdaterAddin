@@ -297,15 +297,34 @@ server <- function(input, output, session) {
           message("Use 'Update' button.")
         }
         else {
-          draft.string <- sync.info[result[1] + 1]
-          draft.id <<- strsplit(draft.string, split=" ", fixed=TRUE)[[c(1,3)]]
           Update(draft.id, odt.report)
-          shiny::stopApp()
         }
       }}
     else {
       Update(draft.id, odt.report)
-      shiny::stopApp()
+    }
+  })
+
+  shiny::observeEvent(input$bupd, {
+    if (is.null(draft.id)){
+      info <- GetInformation()
+      if (is.null(info)){
+        shiny::stopApp()
+        return()
+      }
+      else if (info == 2){}
+      else {
+        if ( ! was.found){
+          # report info wasnt found
+          message("Files were not found in sync_reports.sh.")
+          message("Use 'Update' button.")
+        }
+        else {
+          Reupload(draft.id, fair.id, odt.report)
+        }
+      }}
+    else {
+      Reupload(draft.id, fair.id, odt.report)
     }
   })
 

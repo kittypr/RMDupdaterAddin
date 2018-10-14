@@ -73,6 +73,15 @@ Update <- function(draft.id, odt.report){
   }
 }
 
+Reupload <- function(draft.id, fair.id, odt.report){
+  choice <- menu(c("Yes"), title="Do you want reupload draft and fair copy?")
+  if (choice == 1){
+    googledrive::drive_update(googledrive::as_id(fair.id), odt.report)
+    googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
+    message("Updated successfully")
+  }
+}
+
 
 #' Calls for comparing python script.
 #'
