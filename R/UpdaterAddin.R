@@ -47,16 +47,22 @@ Find <- function(pattern, original, comparator = function(a,b){return(a==b)}){
 #' @param sync.path Character vector, path to sync_report.sh file
 #' @return -
 Upload <- function(odt.report, report.name, report.name.draft, sync.path){
-  result <- googledrive::drive_upload(odt.report, name=report.name, type="document")
-  fair <- result[[2]] # gdoc id for fair copy
-  result <- googledrive::drive_upload(odt.report, name=report.name.draft, type="document")
-  draft <- result[[2]] # gdoc id for draft
+  tryCatch({
+    result <- googledrive::drive_upload(odt.report, name=report.name, type="document")
+    fair <- result[[2]] # gdoc id for fair copy
+    result <- googledrive::drive_upload(odt.report, name=report.name.draft, type="document")
+    draft <- result[[2]] # gdoc id for draft
 
-  # writes information in sync_reports.sh
-  fair.link <- paste0(" https://docs.google.com/document/d/", fair, "/")
-  fair.string <- paste0("# ", report.name, fair.link)
-  draft.string <- paste0("gdrive update ", draft, " ", odt.report, " --name ", report.name.draft)
-  cat("\n", fair.string, draft.string, file=sync.path, sep="\n",append=TRUE)
+    # writes information in sync_reports.sh
+    fair.link <- paste0(" https://docs.google.com/document/d/", fair, "/")
+    fair.string <- paste0("# ", report.name, fair.link)
+    draft.string <- paste0("gdrive update ", draft, " ", odt.report, " --name ", report.name.draft)
+    cat("\n", fair.string, draft.string, file=sync.path, sep="\n",append=TRUE)
+  },
+  error = function(e){
+    message("Uploading error:")
+    message(e$message)
+  })
 }
 
 
@@ -68,8 +74,14 @@ Upload <- function(odt.report, report.name, report.name.draft, sync.path){
 Update <- function(draft.id, odt.report){
   choice <- menu(c("Yes"), title="Do you want update draft?")
   if (choice == 1){
-    googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
-    message("Updated successfully")
+    tryCatch({
+      googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
+      message("Updated successfully")
+    },
+    error = function(e) {
+      message("Updating error:")
+      message(e$message)
+    })
   }
 }
 
@@ -82,9 +94,15 @@ Update <- function(draft.id, odt.report){
 Reupload <- function(draft.id, fair.id, odt.report){
   choice <- menu(c("Yes"), title="Do you want reupload draft and fair copy?")
   if (choice == 1){
-    googledrive::drive_update(googledrive::as_id(fair.id), odt.report)
-    googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
-    message("Updated successfully")
+    tryCatch({
+      googledrive::drive_update(googledrive::as_id(fair.id), odt.report)
+      googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
+      message("Updated successfully")
+    },
+    error = function(e) {
+      message("Uploading error:")
+      message(e$message)
+    })
   }
 }
 
@@ -158,7 +176,18 @@ CopyAndCompare <- function(echo.true.report, fair.id, name){
   output <- paste0(name, "_output_rmdupd.odt")
 
   # downloads fair copy from google drive
-  googledrive::drive_download(file=googledrive::as_id(fair.id), path=output, overwrite=TRUE)
+  error = FALSE
+  tryCatch({
+    googledrive::drive_download(file=googledrive::as_id(fair.id), path=output, overwrite=TRUE)
+  },
+  error = function(e) {
+    error <<- TRUE
+    message("Error during downloading fair copy:")
+    message(e$message)
+  })
+  if (error){
+    return("Error during downloading, exit application.")
+  }
 
 
   file.create(copy)
