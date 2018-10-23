@@ -1,9 +1,11 @@
+import difflib
+
+import lcs
+
 from apiclient import errors
 from apiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file as oauth_file
-
-import difflib
 
 
 CLIENT_SECRETS_FILE = "client_secret.json"
@@ -54,12 +56,12 @@ def run_local_comparison(tables, fair_tables):
     :param fair_tables: tables from fair copy from gdoc.
     :return: result: list of tuples of context and ancestor that refer to tables that differs from tables in fair copy.
     """
+    current = [current[0] for current in tables]
+    fair = [fair[0] for fair in fair_tables]
+    diff = lcs.longest_common_subsequence(current, fair)
     result = list()
-    for current, fair in zip(tables, fair_tables):
-        if current[0] != fair[0]:
-            result.append(current[1])
-    if len(tables) > len(fair_tables):
-        result.extend([current[1] for current in tables[len(fair_tables):]])
+    for i in diff:
+        result.append(tables[i][1])
     return result
 
 
@@ -68,21 +70,14 @@ def run_local_text_comparison(text, fair_text):
 
     :param text: text blocks from current report.
     :param fair_text: text blocks from fair copy from gdoc.
-    :return: {deleted: tuple of deleted blocks, added: tuple of new blocks},
+    :return: boolean - TRUE if fair text contains more blocks,
              changed = list of indexes in which difference was found.
     """
-    changed = list()
-    current_list = [item[0] for item in text]
-    current = frozenset(current_list)
-    actual = frozenset([item[0] for item in fair_text])
-    difference = actual ^ current
-    deleted = current & difference
-    added = actual & difference
-    deleted = tuple(deleted)
-    added = tuple(added)
-    for deleted_text in deleted:
-        changed.append(current_list.index(deleted_text))
-    return {'deleted': deleted, 'added': added}, changed
+
+    current = [item[0] for item in text]
+    fair = [item[0] for item in fair_text]
+    changed = lcs.longest_common_subsequence(current, fair)
+    return len(current) < len(fair), changed
 
 
 def create_diff(fromlines, tolines, filename):
@@ -102,8 +97,4 @@ def create_diff(fromlines, tolines, filename):
                                       fromdesc='Current report', todesc='Clean copy on Gdoc', context=True, numlines=1)
         result += '\n'
         out.write(result.encode('UTF-8'))
-
-
-
-
 

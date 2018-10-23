@@ -32,7 +32,7 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
     check.create_diff(text, fair_text, filename)
 
     # creating text changes json object
-    changes, changed = check.run_local_text_comparison(text, fair_text)
+    additions, changed = check.run_local_text_comparison(text, fair_text)
     text_json = {'text': list(),
                  'context': list(),
                  'ancestor': list()}
@@ -44,7 +44,7 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
 
     # creating tables changes json object
     result = check.run_local_comparison(tables, fair_tables)
-    if len(result) == 0 and len(changes['added']) == 0 and len(changed) == 0:
+    if len(result) == 0 and len(changed) == 0 and not additions:
         print('ALL IS UP TO DATE')
     else:
         print('OUTDATED BLOCKS WERE FOUNDED')
@@ -72,4 +72,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args.input, args.gdoc_id, args.name, args.fair, warnings=False)
-

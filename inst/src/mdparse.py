@@ -16,17 +16,15 @@ class MdExtractor:
     them to *.json. There are two recursive functions, that parses json tree.
     As far as we need only raw text and tables in this project, we ignore most
     formatting features and additional objects like math and images and some others.
-
-
     For full parser you can visit https://github.com/kittypr/PandocOdsWriter/.
     """
 
     def __init__(self, warnings):
         """Gets logical indicator either user needs additional information or not.
 
-        Creates empty dict, it will collect all tables:
-            tables = { ((previous code, code's context), index): [[cell, cell], [cell, cell]]; ... },
-        Creates empty list of text, it will collect all text:
+        Creates empty list, it will collect all tables:
+            tables = [([[cell, cell], [cell, cell], ...], (previous code, code's context))],
+        Creates empty list, it will collect all text:
             text = [(text, code's context, previous code), ... ]
         Creates 3 empty string: to collect words, to save code, to save previous code.
 
@@ -83,6 +81,7 @@ class MdExtractor:
             [0] - list of attributes: identifier, classes, key-value pairs.
             'code' - string with code.
         we should parse it especially.
+
         :param: code: element with title 'Code' or 'CodeBlock'.
         """
 
@@ -167,10 +166,10 @@ class MdExtractor:
             table.append(row)
         table = tuple(table)
         self.tables.append((table, (self.context, self.ancestor)))
-        # self.tables[((self.context, self.ancestor), len(self.tables))] = table
 
     def dict_parse(self, dictionary, cell_content=False):
         """Parses dictionaries.
+
         Dictionary represents some json-object. The kind of json object depends on its 't' (title) field.
         We will parse it differently depending on different titles.
 
@@ -226,8 +225,8 @@ class MdExtractor:
 
     def document_parse(self, document):
         """Main function.
-        Gets JSON object from Pandoc, parses it and extracts tables.
 
+        Gets JSON object from Pandoc, parses it and extracts tables.
         :param: document - json object as python dictionary or list.
                   In case of dictionary it has representation like:
                   { 'pandoc-version': ...
@@ -250,7 +249,7 @@ class MdExtractor:
 
         :param source: string, path to *.md document
         :return: if succeed:
-                     tables: = { ((previous code, code's context), index): [[cell, cell], [cell, cell]]; ... },
+                     tables: = [ ([[cell, cell], [cell, cell], ...], (previous code, code's context)) ],
                              all collected tables and their code ancestors.
                      text: = [(text, code's context, previous code), ... ]
                            all collected text blocks and their code ancestors.
