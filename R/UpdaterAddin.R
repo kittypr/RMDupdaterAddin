@@ -270,8 +270,7 @@ Ignore <- function(){
     gitfile <- file(description=gitignore, open="w", encoding="UTF-8")
     write("", file=gitfile, append=TRUE)
     write(files, file=gitfile, append=TRUE)
-    write(extension, file=gitfile, append=TRUE)
-    write(textension, file=gitfile, append=TRUE)
+    write(log.files, file=gitfile, append=TRUE)
     close(gitfile)
     return(TRUE)
   }
