@@ -29,7 +29,7 @@ server <- function(input, output, session) {
   name <- NULL
 
   was.found <- FALSE
-  information..extracted <- FALSE
+  information.extracted <- FALSE
 
   #' Gets information about cerrunt project and current opened .rmd file.
   #'
@@ -81,7 +81,7 @@ server <- function(input, output, session) {
         shiny::stopApp()
       }
     }
-    information..extracted <<- TRUE
+    information.extracted <<- TRUE
     return(1)
   }
 
@@ -382,7 +382,7 @@ server <- function(input, output, session) {
   })
 
   shiny::observeEvent(input$ofc, {
-    if (! information..extracted){
+    if (! information.extracted){
       GetInformation()
     }
     if (is.null(fair.id)){
@@ -394,7 +394,7 @@ server <- function(input, output, session) {
   })
 
   shiny::observeEvent(input$odc, {
-    if (! information..extracted){
+    if (! information.extracted){
       GetInformation()
     }
     if (is.null(draft.id)){
