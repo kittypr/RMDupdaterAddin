@@ -244,7 +244,7 @@ server <- function(input, output, session) {
 
   shiny::observeEvent(input$upd, {
     json.text.changes <<- NULL
-    json.tables.changes <<_ NULL
+    json.tables.changes <<- NULL
     progress <- shiny::Progress$new(session, min=1, max = 100)
     progress$set(message = "Updating in progress", detail = "Searching for URLs . . .")
     info <- GetInformation()
@@ -258,8 +258,12 @@ server <- function(input, output, session) {
       message(paste0("Information associated with ", report.name, " was not found in sync_reports.sh."))
       choice <- menu(c("Yes"), title="Do you want create new fair and draft?")
       if (choice == 1){
-        Upload(odt.report, report.name, report.name.draft, sync.path)
+        progress <- shiny::Progress$new(session, min=1, max = 100)
+        progress$set(value = 10, message = "Uploading in progress")
+        Upload(odt.report, report.name, reports.name.draft, sync.path)
+        progress$set(value = 100, message = "Uploading complete")
         message("Uploaded successfully")
+        progress$close()
       }
       shiny::stopApp()
     }
@@ -338,11 +342,19 @@ server <- function(input, output, session) {
           message("Use 'Update' button.")
         }
         else {
+          progress <- shiny::Progress$new(session, min = 1, max = 100)
+          progress$set(value = 10, message = "Uploading in progress")
           Reupload(draft.id, fair.id, odt.report)
+          progress$set(value = 100, message = "Uploading complete")
+          progress$close()
         }
       }}
     else {
+      progress <- shiny::Progress$new(session, min = 1, max = 100)
+      progress$set(value = 10, message = "Uploading in progress")
       Reupload(draft.id, fair.id, odt.report)
+      progress$set(value = 100, message = "Uploading complete")
+      progress$close()
     }
   })
 
