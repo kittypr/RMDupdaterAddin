@@ -243,12 +243,18 @@ server <- function(input, output, session) {
   }
 
   shiny::observeEvent(input$upd, {
+    json.text.changes <<- NULL
+    json.tables.changes <<_ NULL
+    progress <- shiny::Progress$new(session, min=1, max = 100)
+    progress$set(message = "Updating in progress", detail = "Searching for URLs . . .")
     info <- GetInformation()
     if (is.null(info)){
       shiny::stopApp()
     }
     else if (info == 2){}
     else if ( ! was.found){  # report info wasnt found
+      progress$set(value = 100, message = "Updating complete", detail = "")
+      progress$close()
       message(paste0("Information associated with ", report.name, " was not found in sync_reports.sh."))
       choice <- menu(c("Yes"), title="Do you want create new fair and draft?")
       if (choice == 1){
@@ -258,9 +264,13 @@ server <- function(input, output, session) {
       shiny::stopApp()
     }
     else {
+      progress$set(value = 10, detail = "Creating copy of report with 'echo=Treu' option . . .")
       message("Draft info was found. Comparison process . . .")
       echo.true.report <- Echo(content=current.report$contents)
+      progress$set(value = 20, detail = "Downloading, knitting and comparing. This may take a while . . .")
       answer <- CopyAndCompare(echo.true.report, fair.id, name)
+      progress$set(value = 100, message = "Updating complete", detail = "")
+      progress$close()
       if (answer[1] == "OUTDATED BLOCKS WERE FOUNDED"){
         message("Changes detected. Please use 'Find next', 'Find text next' buttons to see outdated blocks.")
         message("You can ignore changes and use 'Force update' button.")
@@ -283,6 +293,8 @@ server <- function(input, output, session) {
   })
 
   shiny::observeEvent(input$fupd, {
+    progress <- shiny::Progress$new(session, min=1, max = 100)
+    progress$set(message = "Forced  updating in progress", detail = "Searching for URLs . . .")
     if (is.null(draft.id)){
       info <- GetInformation()
       if (is.null(info)){
@@ -293,15 +305,21 @@ server <- function(input, output, session) {
       else {
         if ( ! was.found){
           # report info wasnt found
+          progress$set(value = 100, detail = "URLs were nor found.")
           message("Files were not found in sync_reports.sh.")
           message("Use 'Update' button.")
+          progress$close()
         }
         else {
+          progress$set(value = 50, detail = "Uploading . . .")
           Update(draft.id, odt.report)
+          progress$close()
         }
       }}
     else {
+      progress$set(value = 50, detail = "Uploading . . .")
       Update(draft.id, odt.report)
+      progress$close()
     }
   })
 

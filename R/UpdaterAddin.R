@@ -115,6 +115,7 @@ Reupload <- function(draft.id, fair.id, odt.report){
 #' @param fair Character vector, path to downloaded from Gdrive fair copy with .odt extension
 #' @return Character vector, python script's answer
 Compare <- function(echo.md.path, fair.id, name, fair){
+  message("Starting comparison in python script.")
   path <- system.file("src", "RMD_updater.py", package="RMDupdaterAddin", mustWork=TRUE)
   answer <- NULL
   tryCatch(
