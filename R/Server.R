@@ -268,7 +268,7 @@ server <- function(input, output, session) {
       shiny::stopApp()
     }
     else {
-      progress$set(value = 10, detail = "Creating copy of report with 'echo=Treu' option . . .")
+      progress$set(value = 10, detail = "Creating copy of report with 'echo=True' option . . .")
       message("Draft info was found. Comparison process . . .")
       echo.true.report <- Echo(content=current.report$contents)
       progress$set(value = 20, detail = "Downloading, knitting and comparing. This may take a while . . .")
@@ -303,14 +303,14 @@ server <- function(input, output, session) {
         shiny::stopApp()
         return()
       }
-      else if (info == 2){} # cursor out of report
-      else {
-        if ( ! was.found){
+      else if (info == 2){ # cursor out of report
+        return()
+      }
+      else if ( ! was.found){
           # report information was not found
           message("Files were not found in sync_reports.sh.")
           message("Use 'Update' button.")
           return()
-        }
       }
     }
     Update(session, draft.id, odt.report)
@@ -323,28 +323,17 @@ server <- function(input, output, session) {
         shiny::stopApp()
         return()
       }
-      else if (info == 2){}
-      else {
-        if ( ! was.found){
-          # report info wasnt found
+      else if (info == 2){ # cursor out of report
+        return()
+      }
+      else if ( ! was.found){
+          # report information was not found
           message("Files were not found in sync_reports.sh.")
           message("Use 'Update' button.")
-        }
-        else {
-          progress <- shiny::Progress$new(session, min = 1, max = 100)
-          progress$set(value = 10, message = "Uploading in progress")
-          Reupload(draft.id, fair.id, odt.report)
-          progress$set(value = 100, message = "Uploading complete")
-          progress$close()
-        }
-      }}
-    else {
-      progress <- shiny::Progress$new(session, min = 1, max = 100)
-      progress$set(value = 10, message = "Uploading in progress")
-      Reupload(draft.id, fair.id, odt.report)
-      progress$set(value = 100, message = "Uploading complete")
-      progress$close()
+          return()
+      }
     }
+    Reupload(session, draft.id, fair.id, odt.report)
   })
 
   shiny::observeEvent(input$prv, {

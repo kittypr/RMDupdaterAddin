@@ -96,13 +96,18 @@ Update <- function(session, draft.id, odt.report){
 #' @param draft.id Character vector, draft copy Gdoc id
 #' @param fair.id Character vector, fair copy Gdoc id
 #' @return -
-Reupload <- function(draft.id, fair.id, odt.report){
+Reupload <- function(session, draft.id, fair.id, odt.report){
   choice <- menu(c("Yes"), title="Do you want reupload draft and fair copy?")
   if (choice == 1){
     tryCatch({
+      progress <- shiny::Progress$new(session, min=0, max=100)
+      progress$set(value = 10, label = "Uploading in progress")
       googledrive::drive_update(googledrive::as_id(fair.id), odt.report)
+      progress$set(value = 50)
       googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
       message("Updated successfully")
+      progress$set(value = 100, label = "Uploading complete")
+      progress$close()
     },
     error = function(e) {
       message("Uploading error:")
