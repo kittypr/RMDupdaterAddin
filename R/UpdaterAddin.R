@@ -77,10 +77,10 @@ Update <- function(session, draft.id, odt.report){
   if (choice == 1){
     tryCatch({
       progress <- shiny::Progress$new(session, min=0, max=100)
-      progress$set(value = 50, label = "Uploading in progress")
+      progress$set(value = 50, message = "Uploading in progress")
       googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
       message("Updated successfully")
-      progress$set(value = 100, label = "Uploading complete")
+      progress$set(value = 100, message = "Uploading complete")
       progress$close()
     },
     error = function(e) {
@@ -101,12 +101,12 @@ Reupload <- function(session, draft.id, fair.id, odt.report){
   if (choice == 1){
     tryCatch({
       progress <- shiny::Progress$new(session, min=0, max=100)
-      progress$set(value = 10, label = "Uploading in progress")
+      progress$set(value = 10, message = "Uploading in progress")
       googledrive::drive_update(googledrive::as_id(fair.id), odt.report)
       progress$set(value = 50)
       googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
       message("Updated successfully")
-      progress$set(value = 100, label = "Uploading complete")
+      progress$set(value = 100, message = "Uploading complete")
       progress$close()
     },
     error = function(e) {

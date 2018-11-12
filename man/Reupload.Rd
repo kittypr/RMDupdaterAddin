@@ -4,7 +4,7 @@
 \alias{Reupload}
 \title{Reupload draft and fair copies on Gdrive with using existing links}
 \usage{
-Reupload(draft.id, fair.id, odt.report)
+Reupload(session, draft.id, fair.id, odt.report)
 }
 \arguments{
 \item{draft.id}{Character vector, draft copy Gdoc id}

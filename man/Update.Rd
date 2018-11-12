@@ -4,7 +4,7 @@
 \alias{Update}
 \title{Updates draft copy on Gdrive.}
 \usage{
-Update(draft.id, odt.report)
+Update(session, draft.id, odt.report)
 }
 \arguments{
 \item{draft.id}{Character vector, draft copy Gdoc id}
