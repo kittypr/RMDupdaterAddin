@@ -4,6 +4,7 @@ library(rstudioapi)
 library(googledrive)
 library(knitr)
 library(yaml)
+library(shiny)
 
 
 #' Finds subvector.
@@ -71,12 +72,16 @@ Upload <- function(odt.report, report.name, report.name.draft, sync.path){
 #' @param odt.report Character vector, path to knitted report
 #' @param draft.id Character vector, draft copy Gdoc id
 #' @return -
-Update <- function(draft.id, odt.report){
+Update <- function(session, draft.id, odt.report){
   choice <- menu(c("Yes"), title="Do you want update draft?")
   if (choice == 1){
     tryCatch({
+      progress <- shiny::Progress$new(session, min=0, max=100)
+      progress$set(value = 50, label = "Uploading in progress")
       googledrive::drive_update(googledrive::as_id(draft.id), odt.report)
       message("Updated successfully")
+      progress$set(value = 100, label = "Uploading complete")
+      progress$close()
     },
     error = function(e) {
       message("Updating error:")

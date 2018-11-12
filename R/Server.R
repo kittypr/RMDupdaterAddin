@@ -285,7 +285,7 @@ server <- function(input, output, session) {
       }
       else if (answer[1] == "ALL IS UP TO DATE"){
         message("RMDupdater didn't detect any changes.")
-        Update(draft.id, odt.report)
+        Update(session, draft.id, odt.report)
         shiny::stopApp()
       }
       else {
@@ -297,34 +297,23 @@ server <- function(input, output, session) {
   })
 
   shiny::observeEvent(input$fupd, {
-    progress <- shiny::Progress$new(session, min=1, max = 100)
-    progress$set(message = "Forced  updating in progress", detail = "Searching for URLs . . .")
     if (is.null(draft.id)){
       info <- GetInformation()
       if (is.null(info)){
         shiny::stopApp()
         return()
       }
-      else if (info == 2){}
+      else if (info == 2){} # cursor out of report
       else {
         if ( ! was.found){
-          # report info wasnt found
-          progress$set(value = 100, detail = "URLs were nor found.")
+          # report information was not found
           message("Files were not found in sync_reports.sh.")
           message("Use 'Update' button.")
-          progress$close()
+          return()
         }
-        else {
-          progress$set(value = 50, detail = "Uploading . . .")
-          Update(draft.id, odt.report)
-          progress$close()
-        }
-      }}
-    else {
-      progress$set(value = 50, detail = "Uploading . . .")
-      Update(draft.id, odt.report)
-      progress$close()
+      }
     }
+    Update(session, draft.id, odt.report)
   })
 
   shiny::observeEvent(input$bupd, {
