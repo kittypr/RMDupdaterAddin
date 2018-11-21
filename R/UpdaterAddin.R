@@ -260,6 +260,7 @@ Ignore <- function(){
   gitignore <- ".gitignore"
   log.files <- "*_changes.json"
   files <- "*_rmdupd.*"
+  cache.folder <- "**/cache/"
   if (file.exists(gitignore)){
     content <- readLines(gitignore)
     gitfile <- file(description=gitignore, open="a+", encoding="UTF-8")
@@ -273,6 +274,11 @@ Ignore <- function(){
       write("", file=gitfile, append=TRUE)
       write(log.files, file=gitfile, append=TRUE)
     }
+    result <- grep(cache.folder, content, fixed=TRUE)
+    if (length(result) == 0){
+      write("", file=gitfile, append=TRUE)
+      write(cache.folder, file=gitfile, append=TRUE)
+    }
     close(gitfile)
     return(TRUE)
   }
@@ -282,6 +288,7 @@ Ignore <- function(){
     write("", file=gitfile, append=TRUE)
     write(files, file=gitfile, append=TRUE)
     write(log.files, file=gitfile, append=TRUE)
+    write(cache.folder, file=gitfile, append=TRUE)
     close(gitfile)
     return(TRUE)
   }
