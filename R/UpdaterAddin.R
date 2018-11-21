@@ -158,6 +158,28 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
 }
 
 
+#' Inserts cache option into copy of report.
+#'
+#' @param contents Character vector, content of report's copy
+#' @return Caracter vector, updated content.
+CacheTrue <- function(contents){
+  cache.string <- "knitr::opts_chunk$set(cache = TRUE)"
+  pattern <- "knitr::opts_chunk$set(*)"
+  place <- Find(pattern, contents, function(a,b){return(grepl(a,b))})
+  insert.at <- function(a, pos, ...){
+    dots <- list(...)
+    stopifnot(length(dots)==length(pos))
+    result <- vector("list",2*length(pos)+1)
+    result[c(TRUE,FALSE)] <- split(a, cumsum(seq_along(a) %in% (pos+1)))
+    result[c(FALSE,TRUE)] <- dots
+    unlist(result)
+  }
+  print(place)
+  contents <- insert.at(contents, place[1], cache.string)
+  print(contents)
+}
+
+
 #' Creates copy of current report's content with echo option.
 #'
 #' @param content Character vector, current report content
@@ -165,7 +187,7 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
 Echo <- function(content){
   ref.result <- PerformRefactor(content, from="echo\\s*=\\s*FALSE", to="echo = TRUE")
   # return as character vector
-  ref.result$refactored
+  CacheTrue(ref.result$refactored)
   #  transformed <- paste(ref.result$refactored, collapse="\n")  # return as string witn \n
 }
 
