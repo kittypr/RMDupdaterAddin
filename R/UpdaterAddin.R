@@ -163,9 +163,9 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
 #' @param contents Character vector, content of report's copy
 #' @return Caracter vector, updated content.
 CacheTrue <- function(contents){
-  cache.string <- "knitr::opts_chunk$set(cache = TRUE)"
-  pattern <- "knitr::opts_chunk$set(*)"
-  place <- Find(pattern, contents, function(a,b){return(grepl(a,b))})
+  cache.string <- c("knitr::opts_chunk$set(cache = TRUE)")
+  pattern <- c("knitr::opts_chunk\\$set")
+  place <- Find(pattern, contents, comparator = function(a,b){return(grepl(a,b))})
   insert.at <- function(a, pos, ...){
     dots <- list(...)
     stopifnot(length(dots)==length(pos))
@@ -175,8 +175,7 @@ CacheTrue <- function(contents){
     unlist(result)
   }
   print(place)
-  contents <- insert.at(contents, place[1], cache.string)
-  print(contents)
+  result <- insert.at(contents, place[1], cache.string)
 }
 
 
