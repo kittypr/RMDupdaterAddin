@@ -164,13 +164,13 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
 #' @return Caracter vector, updated content.
 CacheTrue <- function(contents){
   cache.string <- c("knitr::opts_chunk$set(cache = TRUE)")
-  reg.cache.string <- c("knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*(\\s*cache\\s*=\\s*TRUE\\s*)")
+  reg.cache.string <- c("knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*\\(\\s*cache\\s*=\\s*TRUE\\s*\\)")
   already.cache <- Find(reg.cache.string, contents, comparator = function(a,b){return(grepl(a,b))})
   if (length(already.cache) > 0) {
     message("Founded cache option.")
     return(contents)
   }
-  pattern <- c("knitr::opts_chunk\\$set")
+  pattern <- c("\\s*knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set")
   place <- Find(pattern, contents, comparator = function(a,b){return(grepl(a,b))})
   if (length(place) > 0) {
     insert.at <- function(a, pos, ...){
