@@ -164,9 +164,16 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
 #' @return Caracter vector, updated content.
 CacheTrue <- function(contents){
   cache.string <- c("knitr::opts_chunk$set(cache = TRUE)")
+  reg.cache.string <- c("knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*(\\s*cache\\s*=\\s*TRUE\\s*)")
+  already.cache <- Find(reg.cache.string, contents, comparator = function(a,b){return(grepl(a,b))})
+  if (length(already.cache) > 0) {
+    message("Founded cache option.")
+    return(contents)
+  }
   pattern <- c("knitr::opts_chunk\\$set")
   place <- Find(pattern, contents, comparator = function(a,b){return(grepl(a,b))})
-  insert.at <- function(a, pos, ...){
+  if (length(place) > 0) {
+    insert.at <- function(a, pos, ...){
     dots <- list(...)
     stopifnot(length(dots)==length(pos))
     result <- vector("list",2*length(pos)+1)
@@ -174,8 +181,11 @@ CacheTrue <- function(contents){
     result[c(FALSE,TRUE)] <- dots
     unlist(result)
   }
-  print(place)
-  result <- insert.at(contents, place[1], cache.string)
+    result <- insert.at(contents, place[1], cache.string)
+    return(result)
+  }
+  message("Auto cache option for copy unavailable.")
+  contents
 }
 
 
