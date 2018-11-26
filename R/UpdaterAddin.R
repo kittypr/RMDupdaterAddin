@@ -164,7 +164,7 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
 #' @param name String, name of rem file
 #' @return Caracter vector, updated content.
 CacheTrue <- function(contents, name){
-  cache.path <- paste0('knitr::opts_chunk$set(cache.path="', name, '_cache/")')
+  cache.path <- paste0('knitr::opts_chunk$set(cache.path="rmdupd_cache/', name, '_cache/")')
   cache.string <- c("knitr::opts_chunk$set(cache = TRUE)", cache.path)
   reg.cache.string <- c("knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*\\(\\s*cache\\s*=\\s*TRUE\\s*\\)")
   already.cache <- Find(reg.cache.string, contents, comparator = function(a,b){return(grepl(a,b))})
@@ -294,7 +294,7 @@ Ignore <- function(){
   gitignore <- ".gitignore"
   log.files <- "*_changes.json"
   files <- "*_rmdupd.*"
-  cache.folder <- "*_cache/"
+  cache.folder <- "rmdupd_cache/"
   if (file.exists(gitignore)){
     content <- readLines(gitignore)
     gitfile <- file(description=gitignore, open="a+", encoding="UTF-8")
