@@ -164,18 +164,7 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
 #' @param name String, name of rem file
 #' @return Caracter vector, updated content.
 CacheTrue <- function(contents, name){
-  cache.path <- paste0('knitr::opts_chunk$set(cache.path="rmdupd_cache/', name, '_cache/")')
-  cache.string <- c("knitr::opts_chunk$set(cache = TRUE)", cache.path)
-  reg.cache.string <- c("knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*\\(\\s*cache\\s*=\\s*TRUE\\s*\\)")
-  already.cache <- Find(reg.cache.string, contents, comparator = function(a,b){return(grepl(a,b))})
-  if (length(already.cache) > 0) {
-    message("Founded cache option.")
-    return(contents)
-  }
-  pattern <- c("\\s*knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set")
-  place <- Find(pattern, contents, comparator = function(a,b){return(grepl(a,b))})
-  if (length(place) > 0) {
-    insert.at <- function(a, pos, ...){
+  insert.at <- function(a, pos, ...){
     dots <- list(...)
     stopifnot(length(dots)==length(pos))
     result <- vector("list",2*length(pos)+1)
@@ -183,6 +172,31 @@ CacheTrue <- function(contents, name){
     result[c(FALSE,TRUE)] <- dots
     unlist(result)
   }
+  cache.path <- paste0('knitr::opts_chunk$set(cache.path="rmdupd_cache/', name, '_cache/")')
+  cache.string <- c("knitr::opts_chunk$set(cache = TRUE)", cache.path)
+
+  reg.cache.string <- "^[^#]*knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*\\(\\s*cache\\s*=\\s*TRUE\\s*\\)"
+  reg.cache.path.string <- "^[^#]*knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*\\(\\s*cache.path\\s*=\\s*.*\\s*\\)"
+
+  #already.cache <- Find(reg.cache.string, contents, comparator = function(a,b){return(grepl(a,b))})
+  result <- NULL
+
+  already.cache <- match(TRUE, grepl(reg.cache.string, contents))
+  if ( ! is.na(already.cache)) {
+    message("Founded cache option.")
+    already.has.path <- match(TRUE, grepl(reg.cache.path.string, contents))
+    if ( ! is.na(already.has.path)){
+      result <- PerformRefactor(contents, from=reg.cache.path.string, to=cache.path)
+      result <- result$refactored
+    } else {
+      result <- insert.at(contents, already.cache[1]+1, cache.path)
+    }
+    return(result)
+  }
+  pattern <- c("\\s*knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set")
+  #place <- Find(pattern, contents, comparator = function(a,b){return(grepl(a,b))})
+  place <- match(TRUE, grepl(pattern, contents))
+  if ( ! is.na(place)) {
     result <- insert.at(contents, place[1], cache.string)
     return(result)
   }
