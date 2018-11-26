@@ -270,7 +270,7 @@ server <- function(input, output, session) {
     else {
       progress$set(value = 10, detail = "Creating copy of report with 'echo=True' option . . .")
       message("Draft info was found. Comparison process . . .")
-      echo.true.report <- Echo(content=current.report$contents)
+      echo.true.report <- Echo(content=current.report$contents, name=name)
       progress$set(value = 20, detail = "Downloading, knitting and comparing. This may take a while . . .")
       answer <- CopyAndCompare(echo.true.report, fair.id, name)
       progress$set(value = 100, message = "Updating complete", detail = "")

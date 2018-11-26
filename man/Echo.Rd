@@ -4,10 +4,12 @@
 \alias{Echo}
 \title{Creates copy of current report's content with echo option.}
 \usage{
-Echo(content)
+Echo(content, name = "")
 }
 \arguments{
 \item{content}{Character vector, current report content}
+
+\item{name}{String, name of rmd file}
 }
 \value{
 Character vector, new content

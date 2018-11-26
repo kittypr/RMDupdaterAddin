@@ -161,9 +161,11 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
 #' Inserts cache option into copy of report.
 #'
 #' @param contents Character vector, content of report's copy
+#' @param name String, name of rem file
 #' @return Caracter vector, updated content.
-CacheTrue <- function(contents){
-  cache.string <- c("knitr::opts_chunk$set(cache = TRUE)")
+CacheTrue <- function(contents, name){
+  cache.path <- paste0('knitr::opts_chunk$set(cache.path="', name, '_cache/")')
+  cache.string <- c("knitr::opts_chunk$set(cache = TRUE)", cache.path)
   reg.cache.string <- c("knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*\\(\\s*cache\\s*=\\s*TRUE\\s*\\)")
   already.cache <- Find(reg.cache.string, contents, comparator = function(a,b){return(grepl(a,b))})
   if (length(already.cache) > 0) {
@@ -192,11 +194,12 @@ CacheTrue <- function(contents){
 #' Creates copy of current report's content with echo option.
 #'
 #' @param content Character vector, current report content
+#' @param name String, name of rmd file
 #' @return Character vector, new content
-Echo <- function(content){
+Echo <- function(content, name=""){
   ref.result <- PerformRefactor(content, from="echo\\s*=\\s*FALSE", to="echo = TRUE")
   # return as character vector
-  CacheTrue(ref.result$refactored)
+  CacheTrue(ref.result$refactored, name)
   #  transformed <- paste(ref.result$refactored, collapse="\n")  # return as string witn \n
 }
 
@@ -291,7 +294,7 @@ Ignore <- function(){
   gitignore <- ".gitignore"
   log.files <- "*_changes.json"
   files <- "*_rmdupd.*"
-  cache.folder <- "**/cache/"
+  cache.folder <- "*_cache/"
   if (file.exists(gitignore)){
     content <- readLines(gitignore)
     gitfile <- file(description=gitignore, open="a+", encoding="UTF-8")

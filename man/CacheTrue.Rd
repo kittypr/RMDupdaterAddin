@@ -4,10 +4,12 @@
 \alias{CacheTrue}
 \title{Inserts cache option into copy of report.}
 \usage{
-CacheTrue(contents)
+CacheTrue(contents, name)
 }
 \arguments{
 \item{contents}{Character vector, content of report's copy}
+
+\item{name}{String, name of rem file}
 }
 \value{
 Caracter vector, updated content.
