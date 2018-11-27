@@ -164,6 +164,7 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
 #' @param name String, name of rem file
 #' @return Caracter vector, updated content.
 CacheTrue <- function(contents, name){
+  # little function for inserting vectors into another
   insert.at <- function(a, pos, ...){
     dots <- list(...)
     stopifnot(length(dots)==length(pos))
@@ -172,15 +173,17 @@ CacheTrue <- function(contents, name){
     result[c(FALSE,TRUE)] <- dots
     unlist(result)
   }
+
   cache.path <- paste0('knitr::opts_chunk$set(cache.path="rmdupd_cache/', name, '_cache/")')
   cache.string <- c("knitr::opts_chunk$set(cache = TRUE)", cache.path)
 
   reg.cache.string <- "^[^#]*knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*\\(\\s*cache\\s*=\\s*TRUE\\s*\\)"
   reg.cache.path.string <- "^[^#]*knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*\\(\\s*cache.path\\s*=\\s*.*\\s*\\)"
 
-  #already.cache <- Find(reg.cache.string, contents, comparator = function(a,b){return(grepl(a,b))})
   result <- NULL
-
+  # If we haven't cache option, we should insert it and its unique path.
+  # If we have cache option
+  # we should check if we have path for it and replace it with unique, if it is found, and insert if it is not.
   already.cache <- match(TRUE, grepl(reg.cache.string, contents))
   if ( ! is.na(already.cache)) {
     message("Founded cache option.")
@@ -193,8 +196,8 @@ CacheTrue <- function(contents, name){
     }
     return(result)
   }
-  pattern <- c("\\s*knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set")
-  #place <- Find(pattern, contents, comparator = function(a,b){return(grepl(a,b))})
+  pattern <- "\\s*knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set"
+
   place <- match(TRUE, grepl(pattern, contents))
   if ( ! is.na(place)) {
     result <- insert.at(contents, place[1], cache.string)
@@ -208,15 +211,23 @@ CacheTrue <- function(contents, name){
 #' Creates copy of current report's content with echo option.
 #'
 #' @param content Character vector, current report content
-#' @param name String, name of rmd file
 #' @return Character vector, new content
-Echo <- function(content, name=""){
+Echo <- function(content){
   ref.result <- PerformRefactor(content, from="echo\\s*=\\s*FALSE", to="echo = TRUE")
   # return as character vector
-  CacheTrue(ref.result$refactored, name)
+  ref.result$refactored
   #  transformed <- paste(ref.result$refactored, collapse="\n")  # return as string witn \n
 }
 
+#' Creates copy of current report's content with echo and cache options.
+#'
+#' @param content Character vector, current report content
+#' @param name String, name of rmd file
+#' @return Character vector, new content
+SetOptions <- function(content, name){
+  result <- Echo(content)
+  CacheTrue(result, name)
+}
 
 #' Creates copy of current report with echo option, knits it to .md file, calls comparation function.
 #'
