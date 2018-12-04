@@ -163,7 +163,7 @@ PerformRefactor <- function(contents, from, to, useWordBoundaries=FALSE) {
 #' @param contents Character vector, content of report's copy
 #' @param name String, name of rem file
 #' @return Caracter vector, updated content.
-CacheTrue <- function(contents, name){
+SetCache <- function(contents, name){
   # little function for inserting vectors into another
   insert.at <- function(a, pos, ...){
     dots <- list(...)
@@ -175,7 +175,7 @@ CacheTrue <- function(contents, name){
   }
 
   cache.path <- paste0('knitr::opts_chunk$set(cache.path="rmdupd_cache/', name, '_cache/")')
-  cache.string <- c("knitr::opts_chunk$set(cache = TRUE)", cache.path)
+  cache.string <- "knitr::opts_chunk$set(cache = TRUE)"
 
   reg.cache.string <- "^[^#]*knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*\\(\\s*cache\\s*=\\s*TRUE\\s*\\)"
   reg.cache.path.string <- "^[^#]*knitr\\s*::\\s*opts_chunk\\s*\\$\\s*set\\s*\\(\\s*cache.path\\s*=\\s*.*\\s*\\)"
@@ -201,6 +201,13 @@ CacheTrue <- function(contents, name){
   place <- match(TRUE, grepl(pattern, contents))
   if ( ! is.na(place)) {
     result <- insert.at(contents, place[1], cache.string)
+    already.has.path <- match(TRUE, grepl(reg.cache.path.string, contents))
+    if ( ! is.na(already.has.path)){
+      result <- PerformRefactor(result, from=reg.cache.path.string, to=cache.path)
+      result <- result$refactored
+    } else {
+      result <- insert.at(result, place[1]+1, cache.path)
+    }
     return(result)
   }
   message("Auto cache option for copy unavailable.")
@@ -212,7 +219,7 @@ CacheTrue <- function(contents, name){
 #'
 #' @param content Character vector, current report content
 #' @return Character vector, new content
-Echo <- function(content){
+SetEcho <- function(content){
   ref.result <- PerformRefactor(content, from="echo\\s*=\\s*FALSE", to="echo = TRUE")
   # return as character vector
   ref.result$refactored
@@ -225,8 +232,8 @@ Echo <- function(content){
 #' @param name String, name of rmd file
 #' @return Character vector, new content
 SetOptions <- function(content, name){
-  result <- Echo(content)
-  CacheTrue(result, name)
+  result <- SetEcho(content)
+  SetCache(result, name)
 }
 
 #' Creates copy of current report with echo option, knits it to .md file, calls comparation function.
