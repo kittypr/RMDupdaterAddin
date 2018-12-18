@@ -260,7 +260,7 @@ server <- function(input, output, session) {
       if (choice == 1){
         progress <- shiny::Progress$new(session, min=1, max = 100)
         progress$set(value = 10, message = "Uploading in progress")
-        Upload(odt.report, report.name, reports.name.draft, sync.path)
+        Upload(odt.report, report.name, report.name.draft, sync.path)
         progress$set(value = 100, message = "Uploading complete")
         message("Uploaded successfully")
         progress$close()
