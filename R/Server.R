@@ -66,7 +66,7 @@ server <- function(input, output, session) {
     }
 
     # building path to odt
-    find.odt.report <<- gsub("\\.Rmd$", ".odt", report.path) # CHANGE BEFORE RELEASE to .rmd
+    find.odt.report <- gsub("\\.Rmd$", ".odt", report.path) # CHANGE BEFORE RELEASE to .rmd
     normalized.path <- normalizePath(find.odt.report)
     normalized.project.path <- normalizePath(project.path)
     new.odt.report <- gsub(paste0(normalized.project.path, "\\"), "", normalized.path, fixed=TRUE)
