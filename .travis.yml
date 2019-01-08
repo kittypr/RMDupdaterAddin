@@ -5,4 +5,4 @@ r: 3.3.0
 sudo: false
 cache: packages
 after_failure:
-	- cat /home/travis/build/kittypr/RMDupdaterAddin/RMDupdaterAddin.Rcheck/00install.out
+    - cat /home/travis/build/kittypr/RMDupdaterAddin/RMDupdaterAddin.Rcheck/00install.out
