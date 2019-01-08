@@ -14,7 +14,8 @@ Imports:
     rstudioapi (>= 0.4),
     googledrive (>= 0.1.1),
     yaml (>= 2.2.0),
-    knitr (>= 1.20)
+    knitr (>= 1.20),
+    rjson (>= 0.2.15)
 License: MIT
 Encoding: UTF-8
 LazyData: true
