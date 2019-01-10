@@ -20,8 +20,3 @@ Number Vector with start indexes of entries of subvector, if pattern was founded
 \description{
 Finds subvector.
 }
-\examples{
-Find(c(1, 2), c(4, 1, 2, 7, 1, 3, 2, 2, 1, 2))
-Find(c("the", "Force"), c("May", "the", "Force", "be", "with", "you"))
-Find(c("^motherf.?cker$"), c("English", "motherfucker", "do", "you", "speak", "it"), function(a,b){return(grepl(a,b))})
-}
