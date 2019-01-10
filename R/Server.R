@@ -73,7 +73,7 @@ server <- function(input, output, session) {
     odt.report <<- gsub("\\", "/", new.odt.report, fixed=TRUE)
     if ( ! file.exists(odt.report)){
       message(paste0("File ", odt.report, " was not found."))
-      if (menu(c("Yes"), title="Select it manually?") == 1){
+      if (utils::menu(c("Yes"), title="Select it manually?") == 1){
         odt.report <<- rstudioapi::selectFile(caption="Select knitted report:", label="Select", path=NULL,
                                               filter="*.odt", existing=TRUE)
       }
@@ -256,7 +256,7 @@ server <- function(input, output, session) {
       progress$set(value = 100, message = "Updating complete", detail = "")
       progress$close()
       message(paste0("Information associated with ", report.name, " was not found in sync_reports.sh."))
-      choice <- menu(c("Yes"), title="Do you want create new fair and draft?")
+      choice <- utils::menu(c("Yes"), title="Do you want create new fair and draft?")
       if (choice == 1){
         progress <- shiny::Progress$new(session, min=1, max = 100)
         progress$set(value = 10, message = "Uploading in progress")
@@ -280,7 +280,7 @@ server <- function(input, output, session) {
         message("You can ignore changes and use 'Force update' button.")
         html.name <- paste0(name, "_rmdupd.html")
         if (file.exists(html.name)){
-          output$diff <- shiny::renderUI(expr=HTML(readLines(html.name, encoding="UTF-8")))
+          output$diff <- shiny::renderUI(expr=shiny::HTML(readLines(html.name, encoding="UTF-8")))
         }
       }
       else if (answer[1] == "ALL IS UP TO DATE"){
@@ -398,7 +398,7 @@ server <- function(input, output, session) {
       return()
     }
     fair.link <- paste0("https://docs.google.com/document/d/", fair.id, "/")
-    browseURL(fair.link)
+    utils::browseURL(fair.link)
   })
 
   shiny::observeEvent(input$odc, {
@@ -410,7 +410,7 @@ server <- function(input, output, session) {
       return()
     }
     draft.link <- paste0("https://docs.google.com/document/d/", draft.id, "/")
-    browseURL(draft.link)
+    utils::browseURL(draft.link)
   })
 
   shiny::observeEvent(input$odiff, {

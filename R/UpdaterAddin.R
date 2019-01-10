@@ -68,7 +68,7 @@ Upload <- function(odt.report, report.name, report.name.draft, sync.path){
 #' @param draft.id Character vector, draft copy Gdoc id
 #' @return -
 Update <- function(session, draft.id, odt.report){
-  choice <- menu(c("Yes"), title="Do you want update draft?")
+  choice <- utils::menu(c("Yes"), title="Do you want update draft?")
   if (choice == 1){
     tryCatch({
       progress <- shiny::Progress$new(session, min=0, max=100)
@@ -92,7 +92,7 @@ Update <- function(session, draft.id, odt.report){
 #' @param fair.id Character vector, fair copy Gdoc id
 #' @return -
 Reupload <- function(session, draft.id, fair.id, odt.report){
-  choice <- menu(c("Yes"), title="Do you want reupload draft and fair copy?")
+  choice <- utils::menu(c("Yes"), title="Do you want reupload draft and fair copy?")
   if (choice == 1){
     tryCatch({
       progress <- shiny::Progress$new(session, min=0, max=100)
