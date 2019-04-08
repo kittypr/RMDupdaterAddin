@@ -275,7 +275,7 @@ server <- function(input, output, session) {
       answer <- CopyAndCompare(echo.true.report, fair.id, name)
       progress$set(value = 100, message = "Updating complete", detail = "")
       progress$close()
-      if (answer[1] == "OUTDATED BLOCKS WERE FOUNDED"){
+      if (answer[1] == "OUTDATED BLOCKS WERE FOUND."){
         message("Changes detected. Please use 'Find next', 'Find text next' buttons to see outdated blocks.")
         message("You can ignore changes and use 'Force update' button.")
         html.name <- paste0(name, "_rmdupd.html")
@@ -283,7 +283,7 @@ server <- function(input, output, session) {
           output$diff <- shiny::renderUI(expr=shiny::HTML(readLines(html.name, encoding="UTF-8")))
         }
       }
-      else if (answer[1] == "ALL IS UP TO DATE"){
+      else if (answer[1] == "CHANGED OR DELETED BLOCKS WERE NOT FOUND. CHECK DIFF."){
         message("RMDupdater didn't detect any changes.")
         Update(session, draft.id, odt.report)
         shiny::stopApp()

@@ -4,7 +4,7 @@ import json
 import subprocess
 
 import check
-import mdparse
+import pandoc_json_parse
 
 
 def check_token():  # left for future functionality
@@ -24,9 +24,9 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
                      muted for correct protocol with RMDupdaterAddin.
     :return: -
     """
-    extractor = mdparse.MdExtractor(warnings)
+    extractor = pandoc_json_parse.MdExtractor(warnings)
     tables, text = extractor.parse(input_echo_md)
-    fair_extractor = mdparse.MdExtractor(False)
+    fair_extractor = pandoc_json_parse.MdExtractor(False)
     fair_tables, fair_text = fair_extractor.parse(fair)
     # creating html diff table.
     check.create_diff(text, fair_text, filename)
@@ -45,9 +45,9 @@ def main(input_echo_md, gdoc_id, filename, fair, warnings=False):
     # creating tables changes json object
     result = check.run_local_comparison(tables, fair_tables)
     if len(result) == 0 and len(changed) == 0 and not additions:
-        print('ALL IS UP TO DATE')
+        print('CHANGED OR DELETED BLOCKS WERE NOT FOUND. CHECK DIFF.')
     else:
-        print('OUTDATED BLOCKS WERE FOUNDED')
+        print('OUTDATED BLOCKS WERE FOUND.')
 
     tables_json = {'context': list(),
                    'ancestor': list()}
